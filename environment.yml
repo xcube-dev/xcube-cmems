@@ -1,0 +1,7 @@
+name: xcube-cmems
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  # Required
+  - xcube >= 0.9
