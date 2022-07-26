@@ -23,15 +23,24 @@ from pydap.parsers import parse_ce
 from pydap.parsers.dds import build_dataset
 from pydap.parsers.das import parse_das, add_attributes
 from six.moves.urllib.parse import urlsplit, urlunsplit
-from tornado.platform.asyncio import AnyThreadEventLoopPolicy
 from pydap.cas.get_cookies import setup_session
 
-from constants import CAS_URL
-from constants import ODAP_SERVER
-from constants import DATABASE
+from .constants import CAS_URL
+from .constants import ODAP_SERVER
+from .constants import DATABASE
 
 _LOG = logging.getLogger('xcube')
 
+_SAMPLE_TYPE_TO_DTYPE = {
+        'uint8': '|u1',
+        'uint16': '<u2',
+        'uint32': '<u4',
+        'int8': '|u1',
+        'int16': '<u2',
+        'int32': '<u4',
+        'float32': '<f4',
+        'float64': '<f8',
+    }
 
 class Cmems:
     """
@@ -63,17 +72,84 @@ class Cmems:
 
         return urls
 
-    def get_dataset_metadata(self, dataset_id):
-        pass
+    def get_dataset_metadata(self):
+        session = self._create_session(self._user, self._password)
+        urls = self._get_opendap_urls()
+        return self._get_metadata(urls[0], session) #TODO: Handle for both urls
 
-    def create_session(self, username, password):
+    def _get_metadata(self, opendap_url, session):
+        if opendap_url == 'None':
+            _LOG.warning(f'Dataset is not accessible via Opendap')
+            return {}, {}
+        dataset = self._get_opendap_dataset(session, opendap_url)
+        if not dataset:
+            _LOG.warning(f'Could not extract information about variables '
+                         f'and attributes from {opendap_url}')
+            return {}, {}
+        variable_infos = {}
+        for key in dataset.keys():
+            fixed_key = key.replace('%2E', '_').replace('.', '_')
+            data_type = dataset[key].dtype.name
+            var_attrs = copy.deepcopy(dataset[key].attributes)
+            var_attrs['orig_data_type'] = data_type
+            if '_FillValue' in var_attrs:
+                var_attrs['fill_value'] = var_attrs['_FillValue']
+                var_attrs.pop('_FillValue')
+            else:
+                if data_type in _SAMPLE_TYPE_TO_DTYPE:
+                    data_type = _SAMPLE_TYPE_TO_DTYPE[data_type]
+                    var_attrs['fill_value'] = \
+                        self._determine_fill_value(np.dtype(data_type))
+                else:
+                    warnings.warn(f'Variable "{fixed_key}" has no fill value, '
+                                  f'cannot set one. For parts where no data is '
+                                  f'available you will see random values. This '
+                                  f'is usually the case when data is missing '
+                                  f'for a time step.',
+                                  )
+            var_attrs['size'] = dataset[key].size
+            var_attrs['shape'] = list(dataset[key].shape)
+            if len(var_attrs['shape']) == 0:
+                var_attrs['shape'] = [var_attrs['size']]
+            if '_ChunkSizes' in var_attrs and 'DODS' not in var_attrs:
+                var_attrs['chunk_sizes'] = var_attrs['_ChunkSizes']
+                var_attrs.pop('_ChunkSizes')
+            else:
+                var_attrs['chunk_sizes'] = var_attrs['shape']
+            # do this to ensure that chunk size is never bigger than shape
+            if isinstance(var_attrs['chunk_sizes'], List):
+                for i, chunksize in enumerate(var_attrs['chunk_sizes']):
+                    var_attrs['chunk_sizes'][i] = min(chunksize,
+                                                      var_attrs['shape'][i])
+            else:
+                var_attrs['chunk_sizes'] = min(var_attrs['chunk_sizes'],
+                                               var_attrs['shape'][0])
+            if type(var_attrs['chunk_sizes']) == int:
+                var_attrs['file_chunk_sizes'] = var_attrs['chunk_sizes']
+            else:
+                var_attrs['file_chunk_sizes'] = \
+                    copy.deepcopy(var_attrs['chunk_sizes'])
+            var_attrs['data_type'] = data_type
+            var_attrs['dimensions'] = list(dataset[key].dimensions)
+            var_attrs['file_dimensions'] = \
+                copy.deepcopy(var_attrs['dimensions'])
+            variable_infos[fixed_key] = var_attrs
+
+        return variable_infos, dataset.attributes
+
+    def _determine_fill_value(self, dtype):
+        if np.issubdtype(dtype, np.integer):
+            return np.iinfo(dtype).max
+        if np.issubdtype(dtype, np.inexact):
+            return np.nan
+
+    def _create_session(self, username, password):
         session = setup_session(self._cas_url, username, password)
         session.cookies.set("CASTGC", session.cookies.get_dict()['CASTGC'])
         return session
 
-    # def get_opendap_dataset(self, session, url: str):
     def get_opendap_dataset(self, url: str):
-        session = self.create_session(self._user, self._password)
+        session = self._create_session(self._user, self._password)
         return self._get_opendap_dataset(session, url)
 
     def _get_result_dict(self, session, url: str):
@@ -155,11 +231,11 @@ class Cmems:
             quote(proxy.id) + hyperslab(index) + '&' + query,
             fragment)).rstrip('&')
         # download and unpack data
-        resp = await self.get_response(session, url)
+        resp = self.get_response(session, url)
         if not resp:
             _LOG.warning(f'Could not read response from "{url}"')
             return None
-        content = await resp.read()
+        content = resp.content
         dds, data = content.split(b'\nData:\n', 1)
         dds = str(dds, 'utf-8')
         # Parse received dataset:
@@ -214,7 +290,7 @@ class Cmems:
                                           chunkSize=dataset[var_name].
                                           attributes.get('_ChunkSizes'))
                 if dataset[var_name].size < 512 * 512:
-                    data = await self._get_data_from_opendap_dataset(
+                    data = self._get_data_from_opendap_dataset(
                         dataset,
                         session,
                         var_name,

@@ -24,7 +24,6 @@
 
 CAS_URL = 'https://cmems-cas.cls.fr/cas/login'
 USERNAME = 'tmorbagal'
-PASSWORD = 'Tejas@1993'
 ODAP_SERVER = "cmems-du.eu/thredds/dodsC/"
 DATABASE = ['my', 'nrt']
 

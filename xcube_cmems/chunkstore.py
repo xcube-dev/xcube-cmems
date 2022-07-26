@@ -6,7 +6,7 @@ import time
 from abc import abstractmethod, ABCMeta
 from collections.abc import MutableMapping
 from typing import Iterator, Any, List, Dict, Tuple, Callable, \
-    Iterable, KeysView
+    Iterable, KeysView, Mapping
 
 import numpy as np
 import pandas as pd
@@ -16,6 +16,7 @@ from numcodecs import Blosc
 # from .config import CubeConfig
 # from .constants import BAND_DATA_ARRAY_NAME
 # from .constants import CRS_ID_TO_URI
+from xcube_cmems import cmems
 
 _STATIC_ARRAY_COMPRESSOR_PARAMS = dict(
     cname='zstd',
@@ -278,6 +279,19 @@ class CmemsChunkStore(RemoteStore):
         'FLOAT64': '<f8',
     }
 
+    def __init__(self,
+                 cmems: cmems,
+                 dataset_id: str,
+                 cube_params: Mapping[str, Any] = None,
+                 observer: Callable = None,
+                 trace_store_calls=False):
+        self._cmems = cmems
+        self._metadata = self._cmems.get_dataset_metadata(dataset_id)
+        super().__init__(dataset_id,
+                         cube_params,
+                         observer=observer,
+                         trace_store_calls=trace_store_calls)
+
     def fetch_chunk(self,
                     key: str,
                     var_name: str,
@@ -289,6 +303,8 @@ class CmemsChunkStore(RemoteStore):
         iso_end_date = end_time.tz_localize(None).isoformat()
         dim_indexes = self._get_dimension_indexes_for_chunk(var_name,
                                                             chunk_index)
+
+        data = self._cmems.get_data_chunk(request, dim_indexes)
 
     def _get_dimension_indexes_for_chunk(self, var_name: str, chunk_index: Tuple[int, ...]) -> tuple:
         dim_indexes = []
