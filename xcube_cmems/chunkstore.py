@@ -1,6 +1,7 @@
 from abc import ABC
 import itertools
 import json
+# import logging
 import math
 import time
 from abc import abstractmethod, ABCMeta
@@ -17,6 +18,8 @@ from numcodecs import Blosc
 # from .constants import BAND_DATA_ARRAY_NAME
 # from .constants import CRS_ID_TO_URI
 from xcube_cmems import cmems
+from xcube_cmems.constants import COMMON_COORD_VAR_NAMES
+from xcube_cmems.constants import LOG
 
 _STATIC_ARRAY_COMPRESSOR_PARAMS = dict(
     cname='zstd',
@@ -50,9 +53,162 @@ def _bytes_to_str(b: bytes) -> str:
 
 
 class RemoteStore(MutableMapping, ABC):
+    """
+    A remote Zarr Store.
 
-    def __init__(self):
-        pass
+    :param data_id: The identifier of the data resource
+    :param cube_params: A mapping containing additional parameters to define
+        the data set.
+    :param observer: An optional callback function called when remote requests
+        are mode: observer(**kwargs).
+    :param trace_store_calls: Whether store calls shall be printed
+        (for debugging).
+    """
+
+    def __init__(self,
+                 data_id: str,
+                 cube_params: Mapping[str, Any] = None,
+                 observer: Callable = None,
+                 trace_store_calls=False):
+        if not cube_params:
+            cube_params = {}
+
+        self._observers = [observer] if observer is not None else []
+        self._trace_store_calls = trace_store_calls
+
+        self._variable_names = cube_params.get('variable_names',
+                                               self.get_all_variable_names())
+
+        self._time_ranges = self.get_time_ranges(data_id, cube_params)
+
+
+
+        LOG.debug('Determined time ranges')
+        if not self._time_ranges:
+            raise ValueError('Could not determine any valid time stamps')
+
+        t_array = [s.to_pydatetime()
+                   + 0.5 * (e.to_pydatetime() - s.to_pydatetime())
+                   for s, e in self._time_ranges]
+        t_array = np.array(t_array).astype('datetime64[s]').astype(np.int64)
+        t_bnds_array = \
+            np.array(self._time_ranges).astype('datetime64[s]').astype(np.int64)
+        time_coverage_start = self._time_ranges[0][0]
+        time_coverage_end = self._time_ranges[-1][1]
+
+        bbox = cube_params.get('bbox', None)
+        lon_size = -1
+        lat_size = -1
+
+        self._dimensions = self.get_dimensions()
+        self._num_data_var_chunks_not_in_vfs = 0
+        coords_data = self.get_coords_data(data_id)
+        LOG.debug('Determined coordinates')
+        coords_data['time'] = {}
+        coords_data['time']['size'] = len(t_array)
+        coords_data['time']['data'] = t_array
+        if 'time_bounds' in coords_data:
+            coords_data.pop('time_bounds')
+        coords_data['time_bnds'] = {}
+        coords_data['time_bnds']['size'] = len(t_bnds_array)
+        coords_data['time_bnds']['data'] = t_bnds_array
+        sorted_coords_names = list(coords_data.keys())
+        sorted_coords_names.sort()
+
+        for coord_name in sorted_coords_names:
+            if coord_name == 'time' or coord_name == 'time_bnds':
+                continue
+            # @TODO TMH If a bounding box has been passed in the cube params,
+            # adjust lat/lon values to only hold those values
+
+            coord_data = coords_data[coord_name]['data']
+            coord_attrs = self.get_attrs(coord_name)
+            coord_attrs['_ARRAY_DIMENSIONS'] = coord_attrs['dimensions']
+
+            # @TODO TMH If a bounding box has been passed in the cube params,
+
+            if len(coord_data) > 0:
+                coord_array = np.array(coord_data)
+                self._add_static_array(coord_name, coord_array, coord_attrs)
+            else:
+                shape = list(coords_data[coord_name].
+                             get('shape', coords_data[coord_name].get('size')))
+                chunk_size = coords_data[coord_name]['chunkSize']
+                if not isinstance(chunk_size, List):
+                    chunk_size = [chunk_size]
+                encoding = self.get_encoding(coord_name)
+                self._add_remote_array(coord_name, shape, chunk_size,
+                                       encoding, coord_attrs)
+
+        time_attrs = {
+            "_ARRAY_DIMENSIONS": ['time'],
+            "units": "seconds since 1970-01-01T00:00:00Z",
+            "calendar": "proleptic_gregorian",
+            "standard_name": "time",
+            "bounds": "time_bnds",
+        }
+        time_bnds_attrs = {
+            "_ARRAY_DIMENSIONS": ['time', 'bnds'],
+            "units": "seconds since 1970-01-01T00:00:00Z",
+            "calendar": "proleptic_gregorian",
+            "standard_name": "time_bnds",
+        }
+
+        self._add_static_array('time', t_array, time_attrs)
+        self._add_static_array('time_bnds', t_bnds_array, time_bnds_attrs)
+
+        coordinate_names = [coord for coord in coords_data.keys()
+                            if coord not in COMMON_COORD_VAR_NAMES]
+        coordinate_names = ' '.join(coordinate_names)
+
+        global_attrs = dict(
+            Conventions='CF-1.7',
+            coordinates=coordinate_names,
+            title=data_id,
+            date_created=pd.Timestamp.now().isoformat(),
+            time_coverage_start=time_coverage_start.isoformat(),
+            time_coverage_end=time_coverage_end.isoformat(),
+            time_coverage_duration=
+                (time_coverage_end - time_coverage_start).isoformat(),
+        )
+
+        # setup Virtual File System (vfs)
+        self._vfs = {
+            '.zgroup': _dict_to_bytes(dict(zarr_format=2)),
+            '.zattrs': _dict_to_bytes(global_attrs)
+        }
+
+        for variable_name in self._variable_names:
+            var_encoding = self.get_encoding(variable_name)
+            var_attrs = self.get_attrs(variable_name)
+            dimensions = var_attrs.get('dimensions', [])
+            var_attrs.update(_ARRAY_DIMENSIONS=dimensions)
+            chunk_sizes = var_attrs.get('chunk_sizes', [-1] * len(dimensions))
+            sizes = []
+            for i, coord_name in enumerate(dimensions):
+                if coord_name in coords_data:
+                    sizes.append(coords_data[coord_name]['size'])
+                else:
+                    sizes.append(self._dimensions.get(coord_name))
+                if chunk_sizes[i] == -1:
+                    chunk_sizes[i] = sizes[i]
+            var_attrs['shape'] = sizes
+            var_attrs['size'] = math.prod(sizes)
+            var_attrs['chunk_sizes'] = chunk_sizes
+            self._add_remote_array(variable_name,
+                                   sizes,
+                                   chunk_sizes,
+                                   var_encoding,
+                                   var_attrs)
+        LOG.debug(f"Added a total of {len(self._variable_names)} variables "
+                  f"to the data set")
+        cube_params['variable_names'] = self._variable_names
+        global_attrs['history'] = [dict(
+            program=f'{self._class_name}',
+            cube_params=cube_params
+        )]
+        self._consolidate_metadata()
+
 
     @abstractmethod
     def get_encoding(self, band_name: str) -> Dict[str, Any]:
@@ -63,16 +219,49 @@ class RemoteStore(MutableMapping, ABC):
         and zarr format 2 spec.
         """
 
-    def get_time_ranges(self) -> List[Tuple[pd.Timestamp, pd.Timestamp]]:
-        time_start, time_end = self._cube_config.time_range
-        time_period = self._cube_config.time_period
-        time_ranges = []
-        time_now = time_start
-        while time_now <= time_end:
-            time_next = time_now + time_period
-            time_ranges.append((time_now, time_next))
-            time_now = time_next
-        return time_ranges
+    @abstractmethod
+    def get_time_ranges(self, data_id: str, cube_params: Mapping[str, Any]) \
+            -> List[Tuple]:
+        """
+        Retrieve a list of time ranges. A time range consists of a start and end time.
+        There is one time range per time step.
+        It cube_params contains a field 'time_range', only time steps within this range
+        will be considered.
+
+        :param data_id: The id of the dataset for which time steps shall be retrieved
+        :param cube_params: A mapping which might hold additional parameters
+        :return: A list of tuples consisting of a one start and one end time
+        """
+        pass
+
+    @abstractmethod
+    def get_dimensions(self) -> Mapping[str, int]:
+        """
+        :return: a mapping of dimension names to sizes
+        """
+
+    @abstractmethod
+    def get_coords_data(self, dataset_id: str) -> dict:
+        """
+        Returns a mapping from a coordinate name to its size, shape, chunksize
+        and, in case it is not too large, a data array holding the coordinate data.
+
+        :param dataset_id:  The id of the dataset
+        :return:the mapping described above
+        """
+
+    @abstractmethod
+    def get_attrs(self, var_name: str) -> Dict[str, Any]:
+        """
+        Get any metadata attributes for variable *variable_name*.
+        """
+
+    @abstractmethod
+    def get_all_variable_names(self) -> List[str]:
+        """
+        Returns a list of all the names of the variables in this data set
+        :return:
+        """
 
     def request_bbox(self, x_tile_index: int, y_tile_index: int) \
             -> Tuple[float, float, float, float]:
@@ -201,6 +390,23 @@ class RemoteStore(MutableMapping, ABC):
         """
         pass
 
+    def _consolidate_metadata(self):
+        # Consolidate metadata to suppress warning:  (#69)
+        #
+        # RuntimeWarning: Failed to open Zarr store with consolidated
+        # metadata, falling back to try reading non-consolidated
+        # metadata. ...
+        #
+        metadata = dict()
+        for k, v in self._vfs.items():
+            if k == '.zattrs' or k.endswith('/.zattrs') \
+                    or k == '.zarray' or k.endswith('/.zarray') \
+                    or k == '.zgroup' or k.endswith('/.zgroup'):
+                metadata[k] = _bytes_to_dict(v)
+        self._vfs['.zmetadata'] = _dict_to_bytes(
+            dict(zarr_consolidated_format=1, metadata=metadata)
+        )
+
     @property
     def _class_name(self):
         return self.__module__ + '.' + self.__class__.__name__
@@ -292,6 +498,40 @@ class CmemsChunkStore(RemoteStore):
                          observer=observer,
                          trace_store_calls=trace_store_calls)
 
+    def get_time_ranges(self, data_id: str, cube_params: Mapping[str, Any]) \
+            -> List[Tuple[pd.Timestamp, pd.Timestamp]]:
+        # @TODO THM Check whether this method is applicable like this
+        time_start, time_end = cube_params.get(
+            'time_range',
+            (pd.Timestamp('1970-01-01'), pd.Timestampnow())
+        )
+        # @TODO THM Set time period according for data. If time is irregular, the code
+        # below cannot be used
+        time_period = None
+        time_ranges = []
+        time_now = time_start
+        while time_now <= time_end:
+            time_next = time_now + time_period
+            time_ranges.append((time_now, time_next))
+            time_now = time_next
+        return time_ranges
+
+    def get_dimensions(self) -> Mapping[str, int]:
+        # @TODO THM Implement
+        pass
+
+    def get_coords_data(self, dataset_id: str) -> dict:
+        # @TODO THM Implement
+        pass
+
+    def get_attrs(self, var_name: str) -> Dict[str, Any]:
+        # @TODO THM Implement
+        pass
+
+    def get_all_variable_names(self) -> List[str]:
+        # @TODO THM Implement
+        pass
+
     def fetch_chunk(self,
                     key: str,
                     var_name: str,
@@ -306,7 +546,8 @@ class CmemsChunkStore(RemoteStore):
 
         data = self._cmems.get_data_chunk(request, dim_indexes)
 
-    def _get_dimension_indexes_for_chunk(self, var_name: str, chunk_index: Tuple[int, ...]) -> tuple:
+    def _get_dimension_indexes_for_chunk(self, var_name: str,
+                                         chunk_index: Tuple[int, ...]) -> tuple:
         dim_indexes = []
         var_dimensions = self.get_attrs(var_name).get('file_dimensions', [])
         chunk_sizes = self.get_attrs(var_name).get('file_chunk_sizes', [])
@@ -320,7 +561,8 @@ class CmemsChunkStore(RemoteStore):
                 continue
             dim_size = self._dimensions.get(var_dimension, -1)
             if dim_size < 0:
-                raise ValueError(f'Could not determine size of dimension {var_dimension}')
+                raise ValueError(
+                    f'Could not determine size of dimension {var_dimension}')
             data_offset = self._dimension_chunk_offsets.get(var_dimension, 0)
             start = data_offset + chunk_index[i + offset] * chunk_sizes[i]
             end = min(start + chunk_sizes[i], data_offset + dim_size)

@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
+import logging
 
 
 CAS_URL = 'https://cmems-cas.cls.fr/cas/login'
@@ -51,4 +51,7 @@ DEFAULT_NUM_RETRIES = 200
 CCI_MAX_IMAGE_SIZE = 2500
 
 COMMON_COORD_VAR_NAMES = ['time', 'lat', 'lon', 'latitude', 'longitude',
-                     'latitude_centers', 'x', 'y', 'xc', 'yc']
+                          'x', 'y', 'xc', 'yc']
+
+# xcube-cmems' standard logger
+LOG = logging.getLogger('xcube')
