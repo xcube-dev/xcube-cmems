@@ -26,6 +26,8 @@ CAS_URL = 'https://cmems-cas.cls.fr/cas/login'
 USERNAME = 'tmorbagal'
 ODAP_SERVER = "cmems-du.eu/thredds/dodsC/"
 DATABASE = ['my', 'nrt']
+CSW_URL = "https://cmems-catalog-ro.cls.fr/geonetwork/srv/eng/" \
+          "csw-MYOCEAN-CORE-PRODUCTS?"
 
 # DATA_STORE_ID = 'cciodp'
 # DATASET_OPENER_ID = f'dataset:zarr:{DATA_STORE_ID}'
