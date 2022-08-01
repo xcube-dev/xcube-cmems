@@ -82,8 +82,6 @@ class RemoteStore(MutableMapping, ABC):
 
         self._time_ranges = self.get_time_ranges(data_id, cube_params)
 
-
-
         LOG.debug('Determined time ranges')
         if not self._time_ranges:
             raise ValueError('Could not determine any valid time stamps')
@@ -209,7 +207,6 @@ class RemoteStore(MutableMapping, ABC):
             cube_params=cube_params
         )]
         self._consolidate_metadata()
-
 
     @abstractmethod
     def get_encoding(self, band_name: str) -> Dict[str, Any]:
@@ -508,7 +505,7 @@ class CmemsChunkStore(RemoteStore):
         # @TODO THM Check whether this method is applicable like this
         time_start, time_end = cube_params.get(
             'time_range',
-            (pd.Timestamp('1970-01-01'), pd.Timestampnow())
+            (pd.Timestamp('1970-01-01'), pd.Timestamp.now())
         )
         # @TODO THM Set time period according for data. If time is irregular, the code
         # below cannot be used
