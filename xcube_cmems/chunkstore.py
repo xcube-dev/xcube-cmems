@@ -1,3 +1,4 @@
+import copy
 from abc import ABC
 import itertools
 import json
@@ -263,6 +264,11 @@ class RemoteStore(MutableMapping, ABC):
         :return:
         """
 
+    @abstractmethod
+    def get_variable_data(self, dataset_id: str,
+                          variable_names: Dict[str, int]):
+        pass
+
     def request_bbox(self, x_tile_index: int, y_tile_index: int) \
             -> Tuple[float, float, float, float]:
         x_tile_size, y_tile_size = self.cube_config.tile_size
@@ -473,7 +479,6 @@ class RemoteStore(MutableMapping, ABC):
 
 
 class CmemsChunkStore(RemoteStore):
-
     _SAMPLE_TYPE_TO_DTYPE = {
         'UINT8': '|u1',
         'UINT16': '<u2',
@@ -543,7 +548,7 @@ class CmemsChunkStore(RemoteStore):
         iso_end_date = end_time.tz_localize(None).isoformat()
         dim_indexes = self._get_dimension_indexes_for_chunk(var_name,
                                                             chunk_index)
-
+        request = {}
         data = self._cmems.get_data_chunk(request, dim_indexes)
 
     def _get_dimension_indexes_for_chunk(self, var_name: str,
@@ -552,7 +557,8 @@ class CmemsChunkStore(RemoteStore):
         var_dimensions = self.get_attrs(var_name).get('file_dimensions', [])
         chunk_sizes = self.get_attrs(var_name).get('file_chunk_sizes', [])
         offset = 0
-        # dealing with the case that time has been added as additional first dimension
+        # dealing with the case that time has been added as additional first
+        # dimension
         if len(chunk_index) > len(chunk_sizes):
             offset = 1
         for i, var_dimension in enumerate(var_dimensions):
@@ -568,3 +574,30 @@ class CmemsChunkStore(RemoteStore):
             end = min(start + chunk_sizes[i], data_offset + dim_size)
             dim_indexes.append(slice(start, end))
         return tuple(dim_indexes)
+
+    def get_encoding(self, var_name: str) -> Dict[str, Any]:
+        encoding_dict = {
+            'fill_value': self.get_attrs(var_name).get('fill_value'),
+            'dtype': self.get_attrs(var_name).get('data_type')}
+        return encoding_dict
+
+    def get_attrs(self, var_name: str) -> Dict[str, Any]:
+        if var_name not in self._attrs:
+            self._attrs[var_name] = copy.deepcopy(
+                self._metadata.get('variable_infos', {}).get(var_name, {}))
+        return self._attrs[var_name]
+
+    def get_dimensions(self) -> Mapping[str, int]:
+        return copy.copy(self._metadata['dimensions'])
+
+    def get_coords_data(self, dataset_id: str) -> dict:
+        pass
+
+    def get_variable_data(self, dataset_id: str,
+                          variable_dict: Dict[str, int]):
+        return self._cmems.get_variable_data(dataset_id,
+                                             variable_dict)
+                                             # self._time_ranges[0][0].strftime(
+                                             #     _TIMESTAMP_FORMAT),
+                                             # self._time_ranges[0][1].strftime(
+                                             #     _TIMESTAMP_FORMAT))
