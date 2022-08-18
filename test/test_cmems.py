@@ -1,52 +1,69 @@
-import getpass
 import unittest
+import pandas as pd
+import os
+
 from xcube_cmems.cmems import Cmems
+from dotenv import load_dotenv
 
 
 class CmemsTest(unittest.TestCase):
 
     @classmethod
     def create_cmems_instance(cls):
-        PASSWORD = getpass.getpass('Enter your password: ')
+        # load the environment variables
+        load_dotenv()
         dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
-        cmems = Cmems("tmorbagal", PASSWORD, dataset_id)
+        cmems = Cmems(os.getenv("CMEMS_USER"), os.getenv("CMEMS_PASSWORD"),
+                      dataset_id)
         return cmems
 
     def test_get_metadata(self):
         cmems = self.create_cmems_instance()
-        cmems.get_dataset_metadata()
-        self.assertIsNotNone(cmems.variable_infos)
-        self.assertIsNotNone(cmems.dataset_attributes)
-        self.assertEqual(20, len(cmems.variable_infos))
-        print(cmems.variable_infos)
-        print(cmems.dataset_attributes)
-
-    def test_get_metadata_1(self):
-        cmems = self.create_cmems_instance()
-        cmems.get_dataset_metadata()
-        self.assertIsNotNone(cmems.variable_infos)
-        self.assertIsNotNone(cmems.dataset_attributes)
-        self.assertEqual(20, len(cmems.variable_infos))
-        print(cmems.variable_infos)
-        print(cmems.dataset_attributes)
+        var_info, dataset_attr = cmems.get_valid_opendap_metadata()
+        self.assertIsNotNone(var_info)
+        self.assertIsNotNone(dataset_attr)
+        self.assertEqual(14, len(var_info))
+        print(var_info)
+        print(dataset_attr)
 
     def test_get_uuid_from_json(self):
         cmems = self.create_cmems_instance()
         uuid = cmems.get_csw_uuid_from_did()
-        self.assertEqual('0b6c9fbc-fd13-4629-b79d-88c67e1348bd',
+        self.assertEqual('3183791b-0f94-4697-8fe8-3c7db19a624c',
                          uuid)
 
-    def test_get_metadata_from_csw(self):
+    def test_set_metadata_from_csw(self):
         cmems = self.create_cmems_instance()
-        csw_record = cmems.get_metadata_from_csw("0b6c9fbc-fd13-4629-b79d"
-                                                 "-88c67e1348bd")
-        self.assertEqual((27.37, 40.86, 41.96, 46.8),
-                         cmems.dataset_info['bbox'])
+        cmems.set_metadata_from_csw("3183791b-0f94-4697-8fe8-3c7db19a624c")
+        self.assertEqual((9.0, 53.0, 30.0, 66.0),
+                         cmems.metadata['bbox'])
         self.assertEqual('urn:ogc:def:crs:EPSG:6.6:4326',
-                         cmems.dataset_info['crs'].id)
+                         cmems.metadata['crs'])
 
     def test_get_data_chunk(self):
         cmems = self.create_cmems_instance()
-        request = dict(varNames=['VHM0'])
-        dim_indexes = (slice(None, None, None), slice(0, 40, 40), slice(0, 120, 40))
+        request = dict(varNames=['VHM0'],
+                       startDate='2020-06-16T00:00:00',
+                       endDate='2020-06-17T00:00:00')
+        dim_indexes = (
+            slice(None, None, None), slice(0, 18, 40), slice(0, 120, 40)
+            # slice(None, None), slice(0, 179), slice(0, 359)
+        )
         data_bytes = cmems.get_data_chunk(request, dim_indexes)
+        self.assertEqual(392256, len(data_bytes))
+        print(len(data_bytes))
+
+    def test_start_and_end_time(self):
+        opendap_url = "https://my.cmems-du.eu/thredds/dodsC/med-cmcc-sal-int-m"
+        cmems = self.create_cmems_instance()
+        start_time, end_time = cmems.get_start_and_end_time(opendap_url)
+        self.assertEqual(pd.Timestamp('2020-06-16 00:00:00'), start_time)
+        self.assertEqual(pd.Timestamp('2021-11-16 00:00:00'), end_time)
+
+    def test_consolidate_metadata(self):
+        cmems = self.create_cmems_instance()
+        cmems.consolidate_metadata()
+        self.assertEqual(4, len(cmems.metadata.keys()))
+        self.assertEqual(['var_info', 'dataset_attr', 'bbox', 'crs'],
+                         list(cmems.metadata.keys()))
+        # print(cmems.metadata)

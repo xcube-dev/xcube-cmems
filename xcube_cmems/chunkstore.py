@@ -52,8 +52,14 @@ def _bytes_to_str(b: bytes) -> str:
 
 class RemoteStore(MutableMapping, ABC):
 
-    def __init__(self):
-        pass
+    def __init__(self,
+                 dataset_id: str,
+                 cube_params: Mapping[str, Any] = None,
+                 observer: Callable = None,
+                 trace_store_calls=False):
+        if not cube_params:
+            cube_params = {}
+
 
     @abstractmethod
     def get_encoding(self, band_name: str) -> Dict[str, Any]:
@@ -212,12 +218,12 @@ class RemoteStore(MutableMapping, ABC):
         """
         Fetch chunk data from remote.
 
-        :param key: The original chunk key being retrieved.
-        :param var_name: Variable name.
-        :param chunk_index: 3D chunk index (time, y, x).
-        :param bbox: Requested bounding box in coordinate units of the CRS.
-        :param time_range: Requested time range.
-        :return: chunk data as raw bytes.
+        param key: The original chunk key being retrieved.
+        param var_name: Variable name.
+        param chunk_index: 3D chunk index (time, y, x).
+        param bbox: Requested bounding box in coordinate units of the CRS.
+        param time_range: Requested time range.
+        return: chunk data as raw bytes.
         """
         pass
 
@@ -305,7 +311,7 @@ class CmemsChunkStore(RemoteStore):
                  observer: Callable = None,
                  trace_store_calls=False):
         self._cmems = cmems
-        self._metadata = self._cmems.get_dataset_metadata(dataset_id)
+        self.metadata = self._cmems.consolidate_metadata()
         super().__init__(dataset_id,
                          cube_params,
                          observer=observer,
@@ -358,11 +364,11 @@ class CmemsChunkStore(RemoteStore):
     def get_attrs(self, var_name: str) -> Dict[str, Any]:
         if var_name not in self._attrs:
             self._attrs[var_name] = copy.deepcopy(
-                self._metadata.get('variable_infos', {}).get(var_name, {}))
+                self.metadata.get('variable_infos', {}).get(var_name, {}))
         return self._attrs[var_name]
 
     def get_dimensions(self) -> Mapping[str, int]:
-        return copy.copy(self._metadata['dimensions'])
+        return copy.copy(self.metadata['dimensions'])
 
     def get_coords_data(self, dataset_id: str) -> dict:
         pass
@@ -371,7 +377,7 @@ class CmemsChunkStore(RemoteStore):
                           variable_dict: Dict[str, int]):
         return self._cmems.get_variable_data(dataset_id,
                                              variable_dict)
-                                             # self._time_ranges[0][0].strftime(
-                                             #     _TIMESTAMP_FORMAT),
-                                             # self._time_ranges[0][1].strftime(
-                                             #     _TIMESTAMP_FORMAT))
+        # self._time_ranges[0][0].strftime(
+        #     _TIMESTAMP_FORMAT),
+        # self._time_ranges[0][1].strftime(
+        #     _TIMESTAMP_FORMAT))
