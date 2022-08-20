@@ -59,7 +59,7 @@ class RemoteStore(MutableMapping, ABC):
                  trace_store_calls=False):
         if not cube_params:
             cube_params = {}
-
+        self._dimensions = self.get_dimensions()
 
     @abstractmethod
     def get_encoding(self, band_name: str) -> Dict[str, Any]:
@@ -90,6 +90,9 @@ class RemoteStore(MutableMapping, ABC):
         pass
 
     def get_time_ranges(self) -> List[Tuple[pd.Timestamp, pd.Timestamp]]:
+        # TODO: check what exactly is the function for, whether it should return
+        #  the time ranges provided in cube_config or of a dataset? Also see if
+        #  it needs to be overriden in child class
         time_start, time_end = self._cube_config.time_range
         time_period = self._cube_config.time_period
         time_ranges = []
@@ -179,6 +182,8 @@ class RemoteStore(MutableMapping, ABC):
         else:
             time_index, y_chunk_index, x_chunk_index = chunk_index
 
+        #TODO: check with norman about the exact functionality of both the below
+        # functions
         request_bbox = self.request_bbox(x_chunk_index, y_chunk_index)
         request_time_range = self.request_time_range(time_index)
 
@@ -310,8 +315,15 @@ class CmemsChunkStore(RemoteStore):
                  cube_params: Mapping[str, Any] = None,
                  observer: Callable = None,
                  trace_store_calls=False):
-        self._cmems = cmems
-        self.metadata = self._cmems.consolidate_metadata()
+        self.cmems = cmems
+        self.metadata = self.cmems.consolidate_metadata()
+        # TODO: Think about this to get all attributes of a dataset_id
+        self._attrs = {}
+        self._observers = [observer] if observer is not None else []
+        self._trace_store_calls = trace_store_calls
+
+        # self._metadata = self.cmems.consolidate_metadata()
+
         super().__init__(dataset_id,
                          cube_params,
                          observer=observer,
@@ -329,7 +341,11 @@ class CmemsChunkStore(RemoteStore):
         dim_indexes = self._get_dimension_indexes_for_chunk(var_name,
                                                             chunk_index)
         request = {}
-        data = self._cmems.get_data_chunk(request, dim_indexes)
+        data = self.cmems.get_data_chunk(request, dim_indexes)
+        if not data:
+            raise KeyError(f'{key}: cannot fetch chunk for variable '
+                           f'{var_name!r} and time_range {time_range!r}.')
+        return data
 
     def _get_dimension_indexes_for_chunk(self, var_name: str,
                                          chunk_index: Tuple[int, ...]) -> tuple:
@@ -368,15 +384,15 @@ class CmemsChunkStore(RemoteStore):
         return self._attrs[var_name]
 
     def get_dimensions(self) -> Mapping[str, int]:
-        return copy.copy(self.metadata['dimensions'])
+        return self.cmems.metadata['var_info']['dimensions']
 
     def get_coords_data(self, dataset_id: str) -> dict:
         pass
 
     def get_variable_data(self, dataset_id: str,
                           variable_dict: Dict[str, int]):
-        return self._cmems.get_variable_data(dataset_id,
-                                             variable_dict)
+        return self.cmems.get_variable_data(dataset_id,
+                                            variable_dict)
         # self._time_ranges[0][0].strftime(
         #     _TIMESTAMP_FORMAT),
         # self._time_ranges[0][1].strftime(

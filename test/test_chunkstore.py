@@ -7,8 +7,16 @@ from test.test_cmems import CmemsTest
 
 
 class CmemsChunkstoreTest(unittest.TestCase):
-    cmems = CmemsTest.create_cmems_instance()
 
-    chunk_store = CmemsChunkStore(cmems,
-                                 "dataset-bal-analysis-forecast-wav-hourly")
-    print(chunk_store.metadata)
+    @classmethod
+    def _create_chunk_store_instance(cls, dataset_id):
+        cmems = CmemsTest._create_cmems_instance()
+
+        chunk_store = CmemsChunkStore(cmems, dataset_id)
+        return chunk_store
+
+    def test_get_dimensions(self):
+        chunk_store = self._create_chunk_store_instance\
+                      ("dataset-bal-analysis-forecast-wav-hourly")
+        self.assertEqual(['time', 'lat', 'lon'], chunk_store.get_dimensions())
+

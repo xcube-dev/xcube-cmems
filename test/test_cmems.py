@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 class CmemsTest(unittest.TestCase):
 
     @classmethod
-    def create_cmems_instance(cls):
+    def _create_cmems_instance(cls):
         # load the environment variables
         load_dotenv()
         dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
@@ -18,7 +18,7 @@ class CmemsTest(unittest.TestCase):
         return cmems
 
     def test_get_metadata(self):
-        cmems = self.create_cmems_instance()
+        cmems = self._create_cmems_instance()
         var_info, dataset_attr = cmems.get_valid_opendap_metadata()
         self.assertIsNotNone(var_info)
         self.assertIsNotNone(dataset_attr)
@@ -27,13 +27,13 @@ class CmemsTest(unittest.TestCase):
         print(dataset_attr)
 
     def test_get_uuid_from_json(self):
-        cmems = self.create_cmems_instance()
+        cmems = self._create_cmems_instance()
         uuid = cmems.get_csw_uuid_from_did()
         self.assertEqual('3183791b-0f94-4697-8fe8-3c7db19a624c',
                          uuid)
 
     def test_set_metadata_from_csw(self):
-        cmems = self.create_cmems_instance()
+        cmems = self._create_cmems_instance()
         cmems.set_metadata_from_csw("3183791b-0f94-4697-8fe8-3c7db19a624c")
         self.assertEqual((9.0, 53.0, 30.0, 66.0),
                          cmems.metadata['bbox'])
@@ -41,7 +41,7 @@ class CmemsTest(unittest.TestCase):
                          cmems.metadata['crs'])
 
     def test_get_data_chunk(self):
-        cmems = self.create_cmems_instance()
+        cmems = self._create_cmems_instance()
         request = dict(varNames=['VHM0'],
                        startDate='2020-06-16T00:00:00',
                        endDate='2020-06-17T00:00:00')
@@ -55,15 +55,15 @@ class CmemsTest(unittest.TestCase):
 
     def test_start_and_end_time(self):
         opendap_url = "https://my.cmems-du.eu/thredds/dodsC/med-cmcc-sal-int-m"
-        cmems = self.create_cmems_instance()
+        cmems = self._create_cmems_instance()
         start_time, end_time = cmems.get_start_and_end_time(opendap_url)
         self.assertEqual(pd.Timestamp('2020-06-16 00:00:00'), start_time)
         self.assertEqual(pd.Timestamp('2021-11-16 00:00:00'), end_time)
 
     def test_consolidate_metadata(self):
-        cmems = self.create_cmems_instance()
+        cmems = self._create_cmems_instance()
         cmems.consolidate_metadata()
         self.assertEqual(4, len(cmems.metadata.keys()))
         self.assertEqual(['var_info', 'dataset_attr', 'bbox', 'crs'],
                          list(cmems.metadata.keys()))
-        # print(cmems.metadata)
+        print(cmems.metadata)

@@ -330,6 +330,9 @@ class Cmems:
         var_data = self._get_var_data(opendap_url, var_dict)
         time_array = var_data["time"]["data"]
         time_stamps = get_timestamps(time_array, 'minutes since 1900-01-01')
+        self.metadata['temporal_coverage_start'] = time_stamps[0]
+        self.metadata['temporal_coverage_end'] = time_stamps[-1]
+        # TODO: Test this and get rid of return params
         return time_stamps[0], time_stamps[-1]
 
     def _get_var_data(self,
