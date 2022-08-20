@@ -1,8 +1,5 @@
 import unittest
-from getpass import getpass
-
 from xcube_cmems.chunkstore import CmemsChunkStore
-from xcube_cmems.cmems import Cmems
 from test.test_cmems import CmemsTest
 
 
