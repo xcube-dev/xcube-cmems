@@ -71,6 +71,7 @@ class Cmems:
                  databases: List = DATABASE,
                  server: str = ODAP_SERVER
                  ):
+        self.valid_opendap_url = None
         self._csw_url = csw_url
         self.dataset_id = dataset_id
         self.databases = databases
@@ -112,6 +113,7 @@ class Cmems:
         return urls
 
     def get_valid_opendap_metadata(self):
+        # TODO: Use the get_valid_opendap_url to remove code duplicates
         urls = self._get_opendap_urls()
         for i in range(len(urls)):
             var_info, dataset_attr = \
@@ -128,7 +130,7 @@ class Cmems:
         dataset = self._get_opendap_dataset(opendap_url)
         if not dataset:
             return {}, {}
-        self.variable_infos = {}
+        variable_infos = {}
         for key in dataset.keys():
             fixed_key = key.replace('%2E', '_').replace('.', '_')
             data_type = dataset[key].dtype.name
@@ -175,10 +177,10 @@ class Cmems:
             var_attrs['dimensions'] = list(dataset[key].dimensions)
             var_attrs['file_dimensions'] = \
                 copy.deepcopy(var_attrs['dimensions'])
-        return var_attrs, dataset.attributes
+            variable_infos[fixed_key] = var_attrs
+        return variable_infos, dataset.attributes
 
     def consolidate_metadata(self):
-        # var_info, dataset_attr = self.get_valid_opendap_metadata()
         self.metadata['var_info'], self.metadata['dataset_attr'] = \
             self.get_valid_opendap_metadata()
         self.set_metadata_from_csw(self.get_csw_uuid_from_did())
@@ -189,9 +191,6 @@ class Cmems:
             return np.iinfo(dtype).max
         if np.issubdtype(dtype, np.inexact):
             return np.nan
-
-    def get_opendap_dataset(self, url: str):
-        return self._get_opendap_dataset(url)
 
     def _get_result_dict(self, url: str):
         res_dict = {}
@@ -205,7 +204,7 @@ class Cmems:
         # result_dicts[url] = res_dict
         return res_dict
 
-    def _get_opendap_dataset(self, url: str):
+    def _get_opendap_dataset(self, url: str, request: Dict = None):
         res_dict = self._get_result_dict(url)
         if 'dds' not in res_dict or 'das' not in res_dict:
             print('Could not open opendap url. No dds or das file provided.')
@@ -303,6 +302,7 @@ class Cmems:
             var_name = request['varNames'][0]
         else:
             var_name = None
+        # TODO: get rid of code duplicates
         opendap_urls = self._get_opendap_urls()
         for i in range(len(opendap_urls)):
             dataset = self._get_opendap_dataset(opendap_urls[i])
@@ -325,24 +325,40 @@ class Cmems:
                           end_time)
         return dimension_data
 
-    def get_start_and_end_time(self, opendap_url):
+    def _get_valid_opendap_url(self):
+        urls = self._get_opendap_urls()
+        for i in range(len(urls)):
+            dataset = self._get_opendap_dataset(urls[i])
+            if dataset:
+                self.valid_opendap_url = urls[i]
+                break
+
+    def _get_time_data(self, start_time=None, end_time=None):
+        self._get_valid_opendap_url()
         var_dict = dict(time=0)
-        var_data = self._get_var_data(opendap_url, var_dict)
+        var_data = self._get_var_data(self.valid_opendap_url, var_dict,
+                                      start_time, end_time)
         time_array = var_data["time"]["data"]
-        time_stamps = get_timestamps(time_array, 'minutes since 1900-01-01')
+        return get_timestamps(time_array, 'minutes since 1900-01-01')
+
+    def get_start_and_end_time(self):
+        time_stamps = self._get_time_data()
         self.metadata['temporal_coverage_start'] = time_stamps[0]
         self.metadata['temporal_coverage_end'] = time_stamps[-1]
-        # TODO: Test this and get rid of return params
         return time_stamps[0], time_stamps[-1]
+
+    def get_time_ranges_from_dataset(self, start_time=None, end_time=None):
+        timestamps = self._get_time_data(start_time, end_time)
+        return timestamps
 
     def _get_var_data(self,
                       opendap_url: str,
                       variable_dict: Dict[str, int],  # time
                       start_time: str = None,
                       end_time: str = None):
-        # request = dict(startDate=start_time,
-        #                endDate=end_time
-        #                )
+        request = dict(startDate=start_time,
+                       endDate=end_time
+                       )
         var_data = {}
         if not opendap_url:
             return var_data
