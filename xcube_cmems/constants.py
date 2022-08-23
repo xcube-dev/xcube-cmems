@@ -22,13 +22,13 @@
 
 import logging
 CAS_URL = 'https://cmems-cas.cls.fr/cas/login'
+USERNAME = 'tmorbagal'
 ODAP_SERVER = "cmems-du.eu/thredds/dodsC/"
 DATABASE = ['my', 'nrt']
 CSW_URL = "https://cmems-catalog-ro.cls.fr/geonetwork/srv/eng/" \
           "csw-MYOCEAN-CORE-PRODUCTS?"
 # DATA_ARRAY_NAME = 'var_data'
-# ZARR_DATA_STORE_ID = 'ccizarr'
-# DEFAULT_CRS = 'http://www.opengis.net/def/crs/EPSG/0/4326'
+# ZARR_DATA_STORE_ID = 'cmemszarr'
 COMMON_COORD_VAR_NAMES = ['time', 'lat', 'lon', 'latitude', 'longitude',
                           'x', 'y', 'xc', 'yc']
 
