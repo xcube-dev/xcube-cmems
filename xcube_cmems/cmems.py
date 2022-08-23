@@ -2,10 +2,13 @@ import copy
 import logging
 import os
 import warnings
-from datetime import time
-from random import random
-from typing import List, Dict, Tuple, Optional, Union, Mapping
-from urllib.parse import urlsplit, urlunsplit, quote
+from typing import List
+from typing import Dict
+from typing import Tuple
+from typing import Optional
+from urllib.parse import urlsplit
+from urllib.parse import urlunsplit
+from urllib.parse import quote
 
 import aiohttp
 import numpy as np
@@ -21,11 +24,14 @@ from pydap.lib import combine_slices
 from pydap.lib import fix_slice
 from pydap.lib import hyperslab
 from pydap.lib import walk
-from pydap.model import BaseType, SequenceType, GridType
+from pydap.model import BaseType
+from pydap.model import SequenceType
+from pydap.model import GridType
 from pydap.parsers import parse_ce
 from pydap.parsers.dds import build_dataset
-from pydap.parsers.das import parse_das, add_attributes
-from six.moves.urllib.parse import urlsplit, urlunsplit
+from pydap.parsers.das import parse_das
+from pydap.parsers.das import add_attributes
+# from six.moves.urllib.parse import urlsplit, urlunsplit
 from pydap.cas.get_cookies import setup_session
 from owslib.csw import CatalogueServiceWeb
 
@@ -33,6 +39,7 @@ from .constants import CAS_URL
 from .constants import ODAP_SERVER
 from .constants import DATABASE
 from .constants import CSW_URL
+from .utils import get_timestamps
 
 _LOG = logging.getLogger('xcube')
 
@@ -52,7 +59,7 @@ class Cmems:
     """
         Represents the CMEMS Data Portal
 
-        param opendap_url: The base URL to the opendap dataset
+
     """
 
     def __init__(self,
@@ -64,38 +71,17 @@ class Cmems:
                  databases: List = DATABASE,
                  server: str = ODAP_SERVER
                  ):
+        self.valid_opendap_url = None
         self._csw_url = csw_url
         self.dataset_id = dataset_id
         self.databases = databases
         self.odap_server = server
-        self.dataset_info = {}
+        self.metadata = {}
 
         self.session = setup_session(cas_url, cmems_user,
                                      cmems_user_password)
         self.session.cookies.set("CASTGC", self.session.cookies.get_dict()
         ['CASTGC'])
-
-    def get_csw_uuid_from_did(self):
-        with open('/home/tejas/bc/projects/xcube-cmems/xcube_cmems/csw'
-                  '-opendap-mapping.json') as json_file:
-            data = json.load(json_file)
-            urls = self._get_opendap_urls()
-            if urls[0] in data:
-                return data[urls[0]]
-            else:
-                return data[urls[1]]
-
-    def get_metadata_from_csw(self, uuid):
-        csw_record = {}
-        csw = CatalogueServiceWeb(self._csw_url, timeout=60)
-        csw.getrecordbyid(id=[uuid])
-        csw_record.update(csw.records)
-        self.dataset_info['bbox'] = (float(csw_record[uuid].bbox.minx),
-                                     float(csw_record[uuid].bbox.miny),
-                                     float(csw_record[uuid].bbox.maxx),
-                                     float(csw_record[uuid].bbox.maxy))
-        self.dataset_info['crs'] = csw_record[uuid].bbox.crs
-        return csw_record
 
     def _get_opendap_urls(self):
         urls = []
@@ -105,22 +91,22 @@ class Cmems:
 
         return urls
 
-    def get_dataset_metadata(self):
-        # session = self._create_session(self._user, self._password)
+    def _get_valid_opendap_url(self):
         urls = self._get_opendap_urls()
         for i in range(len(urls)):
-            var_info, dataset_attr = self._get_metadata(urls[i])
-            if var_info and dataset_attr:
+            dataset = self._get_opendap_dataset(urls[i])
+            if dataset:
+                self.valid_opendap_url = urls[i]
                 break
 
-    def _get_metadata(self, opendap_url):
+    def _get_metadata_from_opendap_url(self, opendap_url) -> dict:
         if opendap_url == 'None':
             _LOG.warning(f'Dataset is not accessible via Opendap')
             return {}, {}
         dataset = self._get_opendap_dataset(opendap_url)
         if not dataset:
             return {}, {}
-        self.variable_infos = {}
+        variable_infos = {}
         for key in dataset.keys():
             fixed_key = key.replace('%2E', '_').replace('.', '_')
             data_type = dataset[key].dtype.name
@@ -167,9 +153,42 @@ class Cmems:
             var_attrs['dimensions'] = list(dataset[key].dimensions)
             var_attrs['file_dimensions'] = \
                 copy.deepcopy(var_attrs['dimensions'])
-            self.variable_infos[fixed_key] = var_attrs
-            self.dataset_attributes = dataset.attributes
-        return self.variable_infos, self.dataset_attributes
+            variable_infos[fixed_key] = var_attrs
+        return variable_infos, dataset.attributes
+
+    def get_valid_opendap_metadata(self) -> dict:
+        self._get_valid_opendap_url()
+        var_info, dataset_attr = self._get_metadata_from_opendap_url \
+            (self.valid_opendap_url)
+        return var_info, dataset_attr
+
+    def get_csw_uuid_from_did(self):
+        # TODO: change the path to a generic one. Eventually need to think of a
+        #  better way than static mapping file
+        with open('/home/tejas/bc/projects/xcube-cmems/xcube_cmems/csw'
+                  '-opendap-mapping.json') as json_file:
+            data = json.load(json_file)
+            urls = self._get_opendap_urls()
+            if urls[0] in data:
+                return data[urls[0]]
+            else:
+                return data[urls[1]]
+
+    def set_metadata_from_csw(self, uuid):
+        csw_record = {}
+        csw = CatalogueServiceWeb(self._csw_url, timeout=60)
+        csw.getrecordbyid(id=[uuid])
+        csw_record.update(csw.records)
+        self.metadata['bbox'] = (float(csw_record[uuid].bbox.minx),
+                                 float(csw_record[uuid].bbox.miny),
+                                 float(csw_record[uuid].bbox.maxx),
+                                 float(csw_record[uuid].bbox.maxy))
+        self.metadata['crs'] = csw_record[uuid].bbox.crs.id
+
+    def consolidate_metadata(self):
+        self.metadata['var_info'], self.metadata['dataset_attr'] = \
+            self.get_valid_opendap_metadata()
+        self.set_metadata_from_csw(self.get_csw_uuid_from_did())
 
     @staticmethod
     def _determine_fill_value(dtype):
@@ -178,10 +197,7 @@ class Cmems:
         if np.issubdtype(dtype, np.inexact):
             return np.nan
 
-    def get_opendap_dataset(self, url: str):
-        return self._get_opendap_dataset(url)
-
-    def _get_result_dict(self, url: str):
+    def _get_result_dict(self, url: str) -> dict:
         res_dict = {}
         self._get_content_from_opendap_url(url, 'dds', res_dict)
         self._get_content_from_opendap_url(url, 'das', res_dict)
@@ -193,7 +209,7 @@ class Cmems:
         # result_dicts[url] = res_dict
         return res_dict
 
-    def _get_opendap_dataset(self, url: str):
+    def _get_opendap_dataset(self, url: str, request: Dict = None):
         res_dict = self._get_result_dict(url)
         if 'dds' not in res_dict or 'das' not in res_dict:
             print('Could not open opendap url. No dds or das file provided.')
@@ -285,23 +301,21 @@ class Cmems:
         else:
             return None
 
-    def get_data_chunk(self, request: Dict = None, dim_indexes: Tuple = None)\
+    def get_data_chunk(self, request: Dict = None, dim_indexes: Tuple = None) \
             -> Optional[bytes]:
         if request:
             var_name = request['varNames'][0]
         else:
             var_name = None
-        opendap_urls = self._get_opendap_urls()
-        for i in range(len(opendap_urls)):
-            dataset = self._get_opendap_dataset(opendap_urls[i])
-            if dataset:
-                break
-        # data_type = self.variable_infos.get(var_name, {}).get('data_type')
+        self._get_valid_opendap_url()
+        dataset = self._get_opendap_dataset(self.valid_opendap_url)
+        self.consolidate_metadata()
+        data_type = self.metadata['var_info'].get(var_name, {}).get('data_type')
         data = self._get_data_from_opendap_dataset(dataset, var_name,
                                                    dim_indexes)
         if data is None:
             return None
-        data = np.array(data, copy=False, dtype=np.float32)
+        data = np.array(data, copy=False, dtype=data_type)
         return data.flatten().tobytes()
 
     def get_variable_data(self,
@@ -312,21 +326,36 @@ class Cmems:
                           end_time)
         return dimension_data
 
+    def _get_time_data(self, start_time=None, end_time=None):
+        self._get_valid_opendap_url()
+        var_dict = dict(time=0)
+        var_data = self._get_var_data(self.valid_opendap_url, var_dict,
+                                      start_time, end_time)
+        time_array = var_data["time"]["data"]
+        return get_timestamps(time_array, 'minutes since 1900-01-01')
+
+    def get_start_and_end_time(self):
+        time_stamps = self._get_time_data()
+        self.metadata['temporal_coverage_start'] = time_stamps[0]
+        self.metadata['temporal_coverage_end'] = time_stamps[-1]
+        return time_stamps[0], time_stamps[-1]
+
+    def get_time_ranges_from_dataset(self, start_time=None, end_time=None):
+        timestamps = self._get_time_data(start_time, end_time)
+        return timestamps
+
     def _get_var_data(self,
-                      variable_dict: Dict[str, int],
-                      start_time: str,
-                      end_time: str):
-        request = dict(startDate=start_time,
-                       endDate=end_time
-                       )
-        opendap_urls = self._get_opendap_urls(request)
+                      opendap_url: str,
+                      variable_dict: Dict[str, int],  # time
+                      start_time: str = None,
+                      end_time: str = None):
+        # request = dict(startDate=start_time,
+        #                endDate=end_time
+        #                )
         var_data = {}
-        if not opendap_urls:
+        if not opendap_url:
             return var_data
-        for i in range(len(opendap_urls)):
-            dataset = self._get_opendap_dataset(opendap_urls[i])
-            if dataset:
-                break
+        dataset = self._get_opendap_dataset(opendap_url)
         if not dataset:
             return var_data
         for var_name in variable_dict:
@@ -336,8 +365,11 @@ class Cmems:
                                           chunkSize=dataset[var_name].
                                           attributes.get('_ChunkSizes'))
                 if dataset[var_name].size < 512 * 512:
-                    data = self._get_data_from_opendap_dataset(dataset, (
-                    slice(None, None, None),), )
+                    data = self._get_data_from_opendap_dataset(
+                        dataset,
+                        var_name,
+                        (slice(None, None, None),),
+                    )
                     if data is None:
                         var_data[var_name]['data'] = []
                     else:
