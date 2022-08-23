@@ -383,6 +383,10 @@ class CmemsChunkStore(RemoteStore):
 
     def get_dimensions(self) -> Mapping[str, int]:
         # TODO: Modify the below logic, can't get dimemsions without var name
+        # dimensions = {}
+        # variables = self.cmems.metadata['var_info']
+        # for var in variables:
+        #         dimensions.append('time')
         return self.cmems.metadata['var_info']['dimensions']
 
     def get_coords_data(self, dataset_id: str) -> dict:

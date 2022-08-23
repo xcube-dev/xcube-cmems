@@ -16,10 +16,10 @@ class CmemsChunkstoreTest(unittest.TestCase):
         chunk_store = CmemsChunkStore(cmems, dataset_id)
         return chunk_store
 
-    # def test_get_dimensions(self):
-    #     chunk_store = self._create_chunk_store_instance\
-    #                   ("dataset-bal-analysis-forecast-wav-hourly")
-    #     self.assertEqual(['time', 'lat', 'lon'], chunk_store.get_dimensions())
+    def test_get_dimensions(self):
+        chunk_store = self._create_chunk_store_instance\
+                      ("dataset-bal-analysis-forecast-wav-hourly")
+        self.assertEqual(['time', 'lat', 'lon'], chunk_store.get_dimensions())
 
     def test_get_attributes(self):
         chunk_store = self._create_chunk_store_instance\
@@ -81,3 +81,16 @@ class CmemsChunkstoreTest(unittest.TestCase):
         # cube_params = dict(time_range=time_range)
         time_ranges = store.get_time_ranges()
         print(time_ranges)
+
+    def test_get_data_chunk(self):
+        # TODO: Still not working, Continue implementation
+        store = self._create_chunk_store_instance \
+            ("dataset-bal-analysis-forecast-wav-hourly")
+        request = dict(varNames=['VHM0'])
+        store.fetch_chunk("dataset-bal-analysis-forecast-wav-hourly",
+                          var_name='VHM0',
+                          chunk_index=(4, 481, 474),
+                          bbox=(9.0, 53.0, 30.0, 66.0),
+                          time_range=[pd.Timestamp('2020-06-16 00:00:00'),
+                                      pd.Timestamp('2021-11-16 00:00:00')]
+                          )
