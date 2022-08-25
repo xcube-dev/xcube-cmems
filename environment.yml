@@ -5,3 +5,7 @@ channels:
 dependencies:
   # Required
   - xcube >= 0.9
+  - python-dotenv
+  - pydap
+  - lxml >=4.9.1
+  - owslib
