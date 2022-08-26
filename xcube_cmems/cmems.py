@@ -53,7 +53,7 @@ class Cmems:
         self.databases = databases
         self.odap_server = server
         self.metadata = {}
-        self.opendap_dataset_ids = []
+        self.opendap_dataset_ids = {}
 
         self.session = setup_session(cas_url, cmems_user,
                                      cmems_user_password)
@@ -98,8 +98,8 @@ class Cmems:
         return csw_records
 
     def get_all_dataset_ids(self):
-        csw = CatalogueServiceWeb(self._csw_url, timeout="60")
-        csw_rec = self.get_csw_records(csw, pagesize=10, max_records=500)
+        csw = CatalogueServiceWeb(self._csw_url, timeout=60)
+        csw_rec = self.get_csw_records(csw, pagesize=10, max_records=2000)
         for i in range(len(csw_rec.values())):
             csw_obj_list = list(csw_rec.values())
             for record in csw_obj_list:
@@ -111,6 +111,7 @@ class Cmems:
                                 scheme, netloc, path, query, fragment = \
                                     urlsplit(opendap_uri)
                                 split_paths = path.split('/')
-                                self.opendap_dataset_ids.append(split_paths[-1]
-                                                                )
+                                self.opendap_dataset_ids[split_paths[-1]] = \
+                                    [(split_paths[-1]),
+                                     ('title:', record.title)]
         return self.opendap_dataset_ids

@@ -20,6 +20,7 @@
 # SOFTWARE.
 
 import unittest
+import types
 import xarray as xr
 
 from test_cmems import CmemsTest
@@ -53,6 +54,7 @@ class CmemsDataStoreTest(unittest.TestCase):
 
     def test_get_all_data_ids(self):
         dataset_ids = self.datastore.get_data_ids()
-        self.assertEqual(125840, len(dataset_ids))
-        self.assertTrue('dataset-bal-analysis-forecast-wav-hourly' in
-                        dataset_ids)
+        self.assertIsInstance(dataset_ids, types.GeneratorType)
+        dataset_ids = list(dataset_ids)
+        self.assertEqual(520, len(dataset_ids))
+

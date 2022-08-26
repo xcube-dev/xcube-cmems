@@ -50,4 +50,4 @@ class CmemsTest(unittest.TestCase):
         dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
         cmems = self._create_cmems_instance(dataset_id)
         data_ids = cmems.get_all_dataset_ids()
-        print(data_ids)
+        self.assertEqual(520, len(data_ids))
