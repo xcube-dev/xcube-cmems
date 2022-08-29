@@ -18,24 +18,34 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from typing import Any, Tuple, Container, Union, Iterator, Dict
+from typing import Any
+from typing import Tuple
+from typing import Container
+from typing import Union
+from typing import Iterator
+from typing import Dict
 
 import pyproj
 import xarray as xr
 from pydap.client import open_url
 
+from xcube.core.store import DataType
+from xcube.core.store import DataStoreError
+from xcube.core.store import DATASET_TYPE
 from xcube.core.store import DataDescriptor
 from .cmems import Cmems
 from xcube.core.store import DataOpener
 from xcube.core.store import DataStore
 from xcube.core.store import DataTypeLike
 from xcube.core.store import DatasetDescriptor
+from xcube.core.store import VariableDescriptor
+from xcube.util.assertions import assert_not_none
 from xcube.util.jsonschema import JsonObjectSchema
 from xcube.util.jsonschema import JsonNumberSchema
-from xcube.util.jsonschema import JsonBooleanSchema
 from xcube.util.jsonschema import JsonArraySchema
 from xcube.util.jsonschema import JsonStringSchema
 from xcube.util.jsonschema import JsonDateSchema
+from xcube_cmems.constants import DATASET_OPENER_ID
 
 
 class CmemsDataOpener(DataOpener):
@@ -50,29 +60,67 @@ class CmemsDataOpener(DataOpener):
     def __init__(self,
                  cmems: Cmems,
                  id: str,
+                 data_type: DataType
                  ):
         self.cmems = cmems
         self._id = id
+        self._data_type = data_type
 
-    def describe_data(self, data_id: str, data_type: DataTypeLike = None) \
-            -> DatasetDescriptor:
+    def has_data(self, data_id: str) -> bool:
         pass
-        # ds = self.open_data(data_id)
-        #
-        # descriptor = DatasetDescriptor(data_id,
-        #                                data_type=self._data_type,
-        #                                crs=crs,
-        #                                dims=dims,
-        #                                coords=coord_descriptors,
-        #                                data_vars=var_descriptors,
-        #                                attrs=attrs,
-        #                                bbox=bbox,
-        #                                spatial_res=spatial_resolution,
-        #                                time_range=temporal_coverage,
-        #                                time_period=temporal_resolution)
-        # data_schema = self._get_open_data_params_schema(descriptor)
-        # descriptor.open_params_schema = data_schema
-        # return descriptor
+
+    @staticmethod
+    def _get_var_descriptors(xr_data_vars) -> Dict[str, VariableDescriptor]:
+        var_descriptors = {}
+        for var_key, var_value in xr_data_vars.variables.mapping.items():
+            var_name = var_key
+            var_dtype = var_value.dtype.type
+            var_dims = var_value.dims
+            if var_value.chunks:
+                var_chunks = var_value.chunks
+            else:
+                var_chunks = None
+            var_attrs = var_value.attrs
+            var_descriptors[var_name] = \
+                VariableDescriptor(name=var_name,
+                                   dtype=var_dtype,
+                                   dims=var_dims,
+                                   chunks=var_chunks,
+                                   attrs=var_attrs)
+        return var_descriptors
+
+    def describe_data(self, data_id: str) -> DatasetDescriptor:
+
+        pydap_ds = self.copernicusmarine_datastore
+        xr_ds = xr.open_dataset(pydap_ds)
+        attrs = xr_ds.attrs
+        var_descriptors = self._get_var_descriptors(xr_ds.data_vars)
+        coord_descriptors = self._get_var_descriptors(xr_ds.coords)
+
+        bbox = (round(float(attrs['westernmost_longitude'])),
+                round(float(attrs['southernmost_latitude'])),
+                round(float(attrs['easternmost_longitude'])),
+                round(float(attrs['northernmost_latitude'])),
+                )
+        # TODO: get crs from csw
+        # TODO : Ask Norman how to get spatial_resolution,
+        #  time_range,time_period
+
+        descriptor = DatasetDescriptor(data_id,
+                                       data_type=self._data_type,
+                                       # crs=crs,
+                                       dims=xr_ds.dims,
+                                       coords=coord_descriptors,
+                                       data_vars=var_descriptors,
+                                       attrs=attrs,
+                                       bbox=bbox,
+                                       # spatial_res=spatial_resolution,
+                                       # time_range=temporal_coverage,
+                                       # time_period=temporal_resolution
+                                       )
+        data_schema = self._get_open_data_params_schema(descriptor)
+        descriptor.open_params_schema = data_schema
+        return descriptor
 
     @staticmethod
     def get_pydap_datastore(url, session):
@@ -91,9 +139,9 @@ class CmemsDataOpener(DataOpener):
 
     def open_data(self, data_id: str, **open_params) -> xr.Dataset:
         # @TODO: Remove the block comment later
-        # assert_not_none(data_id)
-        # cmems_schema = self.get_open_data_params_schema(data_id)
-        # cmems_schema.validate_instance(open_params)
+        assert_not_none(data_id)
+        cmems_schema = self.get_open_data_params_schema(data_id)
+        cmems_schema.validate_instance(open_params)
         # cube_kwargs, open_params = cmems_schema.process_kwargs_subset(
         #     open_params, ('variable_names', 'time_range', 'bbox'))
         data_store = self.copernicusmarine_datastore
@@ -113,7 +161,6 @@ class CmemsDataOpener(DataOpener):
         min_date = dsd.time_range[0] if dsd and dsd.time_range else None
         max_date = dsd.time_range[1] if dsd and dsd.time_range else None
         dataset_params = dict(
-            normalize_data=JsonBooleanSchema(default=True),
             variable_names=JsonArraySchema(items=JsonStringSchema(
                 enum=dsd.data_vars.keys() if dsd and dsd.data_vars else None)),
             time_range=JsonDateSchema.new_range(min_date, max_date)
@@ -143,51 +190,43 @@ class CmemsDataOpener(DataOpener):
         return cmems_schema
 
 
+class CmemsDatasetOpener(CmemsDataOpener):
+
+    def __init__(self, **cmems_params):
+        super().__init__(
+            Cmems(**cmems_params),
+            DATASET_OPENER_ID,
+            DATASET_TYPE,
+        )
+
+
 class CmemsDataStore(DataStore):
 
-    def __init__(self, cmems, dataset_id, **store_params):
-        self._dataset_opener = CmemsDataOpener(cmems, dataset_id)
-
-    def search_data(self, data_type: DataTypeLike = None, **search_params) -> \
-            Iterator[DataDescriptor]:
-        pass
-
-    @classmethod
-    def get_search_params_schema(cls,
-                                 data_type: DataTypeLike = None) -> \
-            JsonObjectSchema:
-        pass
-
-    @classmethod
-    def get_data_types(cls) -> Tuple[str, ...]:
-        pass
-
-    def get_data_types_for_data(self, data_id: str) -> Tuple[str, ...]:
-        pass
-
-    def has_data(self, data_id: str, data_type: DataTypeLike = None) -> bool:
-        pass
-
-    def describe_data(self, data_id: str,
-                      data_type: DataTypeLike = None) -> DataDescriptor:
-        pass
-
-    def get_data_opener_ids(self, data_id: str = None,
-                            data_type: DataTypeLike = None) -> Tuple[str, ...]:
-        pass
-
-    def get_open_data_params_schema(self, data_id: str = None,
-                                    opener_id: str = None) -> JsonObjectSchema:
-        pass
+    def __init__(self, **store_params):
+        cmems_schema = self.get_data_store_params_schema()
+        cmems_schema.validate_instance(store_params)
+        # self._dataset_opener = CmemsDataOpener(cmems, dataset_id)
+        cmems_kwargs, store_params = cmems_schema.process_kwargs_subset(
+            store_params, (
+                'cmems_user',
+                'cmems_user_password',
+                'dataset_id',
+                'cas_url',
+                'csw_url',
+                'databases',
+                'server',
+            ))
+        self._dataset_opener = CmemsDatasetOpener(**cmems_kwargs)
 
     def open_data(self, data_id: str, opener_id: str = None,
                   **open_params) -> Any:
-        pass
+        return self._get_opener(opener_id=opener_id).open_data(data_id,
+                                                               **open_params)
 
     def _get_opener(self, opener_id: str = None,
                     data_type: str = None) -> CmemsDataOpener:
-        # self._assert_valid_opener_id(opener_id)
-        # self._assert_valid_data_type(data_type)
+        self._assert_valid_opener_id(opener_id)
+        self._assert_valid_data_type(data_type)
         return self._dataset_opener
 
     def get_data_ids(self, data_type: DataTypeLike = None,
@@ -204,3 +243,66 @@ class CmemsDataStore(DataStore):
                     yield data_id, {}
             else:
                 yield data_id
+
+    @classmethod
+    def get_data_types(cls) -> Tuple[str, ...]:
+        return DATASET_TYPE.alias,
+
+    def get_data_types_for_data(self, data_id: str) -> Tuple[str, ...]:
+        return self.get_data_types()
+
+    def has_data(self, data_id: str, data_type: DataTypeLike = None) -> bool:
+        return self._get_opener(data_type=data_type).has_data(data_id)
+
+    def describe_data(self, data_id: str,
+                      data_type: DataTypeLike = None) -> DataDescriptor:
+        return self._get_opener(data_type=data_type).describe_data(data_id)
+
+    def get_data_opener_ids(self, data_id: str = None,
+                            data_type: DataTypeLike = None) -> Tuple[str, ...]:
+        self._assert_valid_data_type(data_type)
+        if data_id is not None \
+                and not self.has_data(data_id, data_type=data_type):
+            raise DataStoreError(f'Data resource {data_id!r}'
+                                 f' is not available.')
+        if data_type is not None \
+                and not DATASET_TYPE.is_super_type_of(data_type):
+            raise DataStoreError(f'Data resource {data_id!r}'
+                                 f' is not available as type {data_type!r}.')
+        return DATASET_OPENER_ID,
+
+    def get_open_data_params_schema(self, data_id: str = None,
+                                    opener_id: str = None) -> JsonObjectSchema:
+        return self._get_opener(opener_id=opener_id). \
+            get_open_data_params_schema(data_id)
+
+    def search_data(self, data_type: DataTypeLike = None, **search_params) -> \
+            Iterator[DataDescriptor]:
+        pass
+
+    @classmethod
+    def get_search_params_schema(cls,
+                                 data_type: DataTypeLike = None) -> \
+            JsonObjectSchema:
+        pass
+
+    ##########################################################################
+    # Implementation helpers
+
+    @classmethod
+    def _is_valid_data_type(cls, data_type: str) -> bool:
+        return data_type is None or DATASET_TYPE.is_super_type_of(data_type)
+
+    @classmethod
+    def _assert_valid_data_type(cls, data_type):
+        if not cls._is_valid_data_type(data_type):
+            raise DataStoreError(
+                f'Data type must be {DATASET_TYPE!r},'
+                f' but got {data_type!r}')
+
+    @classmethod
+    def _assert_valid_opener_id(cls, opener_id):
+        if opener_id is not None and opener_id != DATASET_OPENER_ID:
+            raise DataStoreError(f'Data opener identifier must be'
+                                 f' "{DATASET_OPENER_ID}",'
+                                 f' but got "{opener_id}"')

@@ -18,13 +18,14 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
+import os
 import unittest
 import types
 import xarray as xr
+import xcube.core.store.descriptor as xcube_des
+from dotenv import load_dotenv
 
-from test_cmems import CmemsTest
-from xcube_cmems.store import CmemsDataOpener
+from xcube_cmems.store import CmemsDatasetOpener
 from xcube_cmems.store import CmemsDataStore
 
 
@@ -32,29 +33,46 @@ class CmemsDataOpenerTest(unittest.TestCase):
 
     def setUp(self) -> None:
         dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
-        cmems = CmemsTest._create_cmems_instance(dataset_id)
-        self.opener = CmemsDataOpener(cmems, dataset_id)
+        load_dotenv()
+        cmems_user = os.getenv("CMEMS_USER")
+        cmems_user_password = os.getenv("CMEMS_PASSWORD")
+        cmems_params = {'cmems_user': cmems_user,
+                        'cmems_user_password': cmems_user_password,
+                        'dataset_id': dataset_id
+                        }
+        self.opener = CmemsDatasetOpener(**cmems_params)
 
     def test_open_data(self):
         dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
         ds = self.opener.open_data(dataset_id,
                                    variable_names=['VHM0'],
-                                   bbox=[9.0, 53.0, 30.0, 66.0],
+                                   # bbox=[9.0, 53.0, 30.0, 66.0],
                                    time_range=['2020-06-16', '2020-07-16']
                                    )
         self.assertIsInstance(ds, xr.Dataset)
+
+    def test_describe_data(self):
+        dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
+        data_des = self.opener.describe_data(dataset_id)
+        self.assertIsInstance(data_des,
+                              xcube_des.DatasetDescriptor)
 
 
 class CmemsDataStoreTest(unittest.TestCase):
 
     def setUp(self) -> None:
         dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
-        cmems = CmemsTest._create_cmems_instance(dataset_id)
-        self.datastore = CmemsDataStore(cmems, dataset_id)
+        load_dotenv()
+        cmems_user = os.getenv("CMEMS_USER")
+        cmems_user_password = os.getenv("CMEMS_PASSWORD")
+        cmems_params = {'cmems_user': cmems_user,
+                        'cmems_user_password': cmems_user_password,
+                        'dataset_id': dataset_id
+                        }
+        self.datastore = CmemsDataStore(**cmems_params)
 
     def test_get_all_data_ids(self):
         dataset_ids = self.datastore.get_data_ids()
         self.assertIsInstance(dataset_ids, types.GeneratorType)
         dataset_ids = list(dataset_ids)
         self.assertEqual(520, len(dataset_ids))
-
