@@ -41,9 +41,9 @@ class CmemsTest(unittest.TestCase):
     def test_get_opendap_urls(self):
         dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
         cmems = self._create_cmems_instance(dataset_id)
-        self.assertEqual(['https://my.cmems-du.eu/thredds/dodsC/dataset-bal'
+        self.assertEqual(['https://nrt.cmems-du.eu/thredds/dodsC/dataset-bal'
                           '-analysis-forecast-wav-hourly',
-                          'https://nrt.cmems-du.eu/thredds/dodsC/dataset-bal'
+                          'https://my.cmems-du.eu/thredds/dodsC/dataset-bal'
                           '-analysis-forecast-wav-hourly'],
                          cmems.get_opendap_urls()
                          )
@@ -53,10 +53,12 @@ class CmemsTest(unittest.TestCase):
         mock_get_all_dataset_ids.return_value = get_all_dataset_results()
         dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
         cmems = self._create_cmems_instance(dataset_id)
-        data_ids = cmems.get_all_dataset_ids()
-        self.assertEqual(520, len(data_ids))
+        self.assertEqual(520, len(cmems.get_all_dataset_ids()))
 
-    def test_get_dataset_names(self):
+    @patch.object(Cmems, "dataset_names")
+    def test_get_dataset_names(self, mock_dataset_names):
         cmems = self._create_cmems_instance("dataset-bal-analysis-forecast-"
                                             "wav-hourly")
-        print(cmems.dataset_names())
+        dataset_dict = get_all_dataset_results()
+        mock_dataset_names.return_value = dataset_dict.keys()
+        self.assertEqual(520, len(cmems.dataset_names()))

@@ -23,6 +23,7 @@ import unittest
 import xarray as xr
 import xcube.core.store.descriptor as xcube_des
 from dotenv import load_dotenv
+from xcube_cmems.cmems import Cmems
 from xcube_cmems.store import CmemsDatasetOpener
 from xcube_cmems.store import CmemsDataOpener
 from xcube_cmems.store import CmemsDataStore
@@ -110,3 +111,9 @@ class CmemsDataStoreTest(unittest.TestCase):
 
     def test_get_data_types(self):
         self.assertEqual(('dataset',), self.datastore.get_data_types())
+
+    @patch.object(Cmems, "dataset_names")
+    def test_has_data(self, mock_dataset_names):
+        dataset_dict = get_all_dataset_results()
+        mock_dataset_names.return_value = dataset_dict.keys()
+        self.assertEqual(True, self.datastore.has_data(self.dataset_id))

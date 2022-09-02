@@ -26,10 +26,10 @@ from pydap.cas.get_cookies import setup_session
 from typing import List
 from typing import Dict
 from typing import Any
-from constants import CAS_URL
-from constants import ODAP_SERVER
-from constants import DATABASE
-from constants import CSW_URL
+from .constants import CAS_URL
+from .constants import ODAP_SERVER
+from .constants import DATABASE
+from .constants import CSW_URL
 from owslib.fes import SortBy
 from owslib.fes import SortProperty
 from owslib.csw import CatalogueServiceWeb
@@ -63,7 +63,7 @@ class Cmems:
                                  self.session.cookies.get_dict()['CASTGC']
                                  )
 
-    def get_opendap_urls(self):
+    def get_opendap_urls(self) -> List[str]:
         urls = []
         for i in range(len(self.databases)):
             urls.append(os.path.join("https://" + self.databases[i] + "." +
@@ -72,7 +72,7 @@ class Cmems:
         return urls
 
     @staticmethod
-    def get_csw_records(csw, pagesize=10, max_records=300):
+    def get_csw_records(csw, pagesize=10, max_records=300) -> Dict[Any]:
         """
         Iterate max_records/pagesize times until the requested value in
         max_records is reached.
@@ -116,6 +116,4 @@ class Cmems:
         return self.opendap_dataset_ids
 
     def dataset_names(self) -> List[str]:
-        dataset_dict = self.get_all_dataset_ids()
-        return dataset_dict.keys()
-
+        return self.get_all_dataset_ids().keys()

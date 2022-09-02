@@ -20,6 +20,7 @@
 # SOFTWARE.
 import xarray as xr
 from typing import Any
+from typing import List
 from typing import Tuple
 from typing import Container
 from typing import Union
@@ -31,7 +32,7 @@ from xcube.core.store import DataType
 from xcube.core.store import DataStoreError
 from xcube.core.store import DATASET_TYPE
 from xcube.core.store import DataDescriptor
-from cmems import Cmems
+from .cmems import Cmems
 from xcube.core.store import DataOpener
 from xcube.core.store import DataStore
 from xcube.core.store import DataTypeLike
@@ -64,8 +65,11 @@ class CmemsDataOpener(DataOpener):
         self._id = id
         self._data_type = data_type
 
+    def dataset_names(self) -> List[str]:
+        return self.cmems.dataset_names()
+
     def has_data(self, data_id: str) -> bool:
-        pass
+        return data_id in self.dataset_names()
 
     @staticmethod
     def _get_var_descriptors(xr_data_vars) -> Dict[str, VariableDescriptor]:
@@ -132,7 +136,7 @@ class CmemsDataOpener(DataOpener):
         return xr.open_dataset(pydap_ds)
 
     def open_data(self, data_id: str, **open_params) -> xr.Dataset:
-        # @TODO: Remove the block comment later
+        # @TODO: TMH : use open_params
         assert_not_none(data_id)
         cmems_schema = self.get_open_data_params_schema(data_id)
         cmems_schema.validate_instance(open_params)
