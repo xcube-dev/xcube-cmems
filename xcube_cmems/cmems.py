@@ -24,10 +24,12 @@ from urllib.parse import urlsplit
 
 from pydap.cas.get_cookies import setup_session
 from typing import List
-from .constants import CAS_URL
-from .constants import ODAP_SERVER
-from .constants import DATABASE
-from .constants import CSW_URL
+from typing import Dict
+from typing import Any
+from constants import CAS_URL
+from constants import ODAP_SERVER
+from constants import DATABASE
+from constants import CSW_URL
 from owslib.fes import SortBy
 from owslib.fes import SortProperty
 from owslib.csw import CatalogueServiceWeb
@@ -82,7 +84,6 @@ class Cmems:
         next_record = getattr(csw, "results", 1)
         while next_record != 0:
             csw.getrecords2(
-                # constraints=filter_list,
                 startposition=start_position,
                 maxrecords=pagesize,
                 sortby=sortby,
@@ -97,21 +98,24 @@ class Cmems:
         csw.records.update(csw_records)
         return csw_records
 
-    def get_all_dataset_ids(self):
+    def get_all_dataset_ids(self) -> Dict[str, Any]:
         csw = CatalogueServiceWeb(self._csw_url, timeout=60)
         csw_rec = self.get_csw_records(csw, pagesize=10, max_records=2000)
-        for i in range(len(csw_rec.values())):
-            csw_obj_list = list(csw_rec.values())
-            for record in csw_obj_list:
-                if len(record.uris) > 0:
-                    for uris in record.uris:
-                        if uris['protocol'] == 'WWW:OPENDAP':
-                            if uris['url']:
-                                opendap_uri = uris['url']
-                                scheme, netloc, path, query, fragment = \
-                                    urlsplit(opendap_uri)
-                                split_paths = path.split('/')
-                                self.opendap_dataset_ids[split_paths[-1]] = \
-                                    [(split_paths[-1]),
-                                     ('title:', record.title)]
+        csw_obj_list = list(csw_rec.values())
+        for record in csw_obj_list:
+            if len(record.uris) > 0:
+                for uris in record.uris:
+                    if uris['protocol'] == 'WWW:OPENDAP':
+                        if uris['url']:
+                            opendap_uri = uris['url']
+                            scheme, netloc, path, query, fragment = \
+                                urlsplit(opendap_uri)
+                            split_paths = path.split('/')
+                            self.opendap_dataset_ids[split_paths[-1]] = \
+                                record.title
         return self.opendap_dataset_ids
+
+    def dataset_names(self) -> List[str]:
+        dataset_dict = self.get_all_dataset_ids()
+        return dataset_dict.keys()
+

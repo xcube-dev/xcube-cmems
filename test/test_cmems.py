@@ -24,6 +24,8 @@ import os
 
 from xcube_cmems.cmems import Cmems
 from dotenv import load_dotenv
+from mock import patch
+from .sample_data import get_all_dataset_results
 
 
 class CmemsTest(unittest.TestCase):
@@ -46,8 +48,15 @@ class CmemsTest(unittest.TestCase):
                          cmems.get_opendap_urls()
                          )
 
-    def test_get_data_ids(self):
+    @patch.object(Cmems, "get_all_dataset_ids")
+    def test_get_data_ids(self, mock_get_all_dataset_ids):
+        mock_get_all_dataset_ids.return_value = get_all_dataset_results()
         dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
         cmems = self._create_cmems_instance(dataset_id)
         data_ids = cmems.get_all_dataset_ids()
         self.assertEqual(520, len(data_ids))
+
+    def test_get_dataset_names(self):
+        cmems = self._create_cmems_instance("dataset-bal-analysis-forecast-"
+                                            "wav-hourly")
+        print(cmems.dataset_names())

@@ -26,3 +26,4 @@ CSW_URL = "https://cmems-catalog-ro.cls.fr/geonetwork/srv/eng/csw-MYOCEAN" \
           "-CORE-PRODUCTS?"
 DATA_STORE_ID = 'cmems'
 DATASET_OPENER_ID = f'dataset:zarr:{DATA_STORE_ID}'
+ZARR_DATA_STORE_ID = 'cmemszarr'

@@ -20,59 +20,93 @@
 # SOFTWARE.
 import os
 import unittest
-import types
 import xarray as xr
 import xcube.core.store.descriptor as xcube_des
 from dotenv import load_dotenv
-
 from xcube_cmems.store import CmemsDatasetOpener
+from xcube_cmems.store import CmemsDataOpener
 from xcube_cmems.store import CmemsDataStore
+from xcube.util.jsonschema import JsonObjectSchema
+from mock import patch
+from .sample_data import create_cmems_dataset
+from .sample_data import get_all_dataset_results
 
 
 class CmemsDataOpenerTest(unittest.TestCase):
 
     def setUp(self) -> None:
-        dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
+        self.dataset_id = "dummy"
         load_dotenv()
         cmems_user = os.getenv("CMEMS_USER")
         cmems_user_password = os.getenv("CMEMS_PASSWORD")
         cmems_params = {'cmems_user': cmems_user,
                         'cmems_user_password': cmems_user_password,
-                        'dataset_id': dataset_id
+                        'dataset_id': self.dataset_id
                         }
         self.opener = CmemsDatasetOpener(**cmems_params)
 
-    def test_open_data(self):
-        dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
-        ds = self.opener.open_data(dataset_id,
-                                   variable_names=['VHM0'],
-                                   # bbox=[9.0, 53.0, 30.0, 66.0],
-                                   time_range=['2020-06-16', '2020-07-16']
-                                   )
-        self.assertIsInstance(ds, xr.Dataset)
+    @patch.object(CmemsDataOpener, "get_xarray_datastore")
+    def test_open_data(self, mock_get_xarray_datastore):
+        mock_get_xarray_datastore.return_value = create_cmems_dataset()
+        mocked_ds = self.opener.open_data(self.dataset_id)
+        self.assertIsInstance(mocked_ds, xr.Dataset)
 
-    def test_describe_data(self):
+    @patch.object(CmemsDataOpener, "get_xarray_datastore")
+    def test_describe_data(self, mock_get_xarray_datastore):
+        mock_get_xarray_datastore.return_value = create_cmems_dataset()
         dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
         data_des = self.opener.describe_data(dataset_id)
-        self.assertIsInstance(data_des,
-                              xcube_des.DatasetDescriptor)
+        self.assertIsInstance(data_des, xcube_des.DatasetDescriptor)
+        self.assertEqual(("2022-01-01", "2022-01-08"), data_des.time_range)
+        self.assertEqual('dataset-bal-analysis-forecast-wav-hourly',
+                         data_des.data_id)
+        self.assertEqual(('time', 'latitude', 'longitude'),
+                         data_des.data_vars.get('VHM0').dims)
 
 
 class CmemsDataStoreTest(unittest.TestCase):
 
     def setUp(self) -> None:
-        dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
+        self.dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
         load_dotenv()
         cmems_user = os.getenv("CMEMS_USER")
         cmems_user_password = os.getenv("CMEMS_PASSWORD")
         cmems_params = {'cmems_user': cmems_user,
                         'cmems_user_password': cmems_user_password,
-                        'dataset_id': dataset_id
+                        'dataset_id': self.dataset_id
                         }
         self.datastore = CmemsDataStore(**cmems_params)
 
-    def test_get_all_data_ids(self):
+    @patch.object(CmemsDataStore, "get_data_ids")
+    def test_get_all_data_ids(self, mock_get_data_ids):
+        mock_get_data_ids.return_value = get_all_dataset_results()
         dataset_ids = self.datastore.get_data_ids()
-        self.assertIsInstance(dataset_ids, types.GeneratorType)
         dataset_ids = list(dataset_ids)
         self.assertEqual(520, len(dataset_ids))
+
+    @patch.object(CmemsDataOpener, "get_xarray_datastore")
+    def test_describe_data(self, mock_get_xarray_datastore):
+        mock_get_xarray_datastore.return_value = create_cmems_dataset()
+        data_des = self.datastore.describe_data(self.dataset_id)
+        self.assertIsInstance(data_des, xcube_des.DatasetDescriptor)
+        self.assertEqual(("2022-01-01", "2022-01-08"), data_des.time_range)
+        self.assertEqual('dataset-bal-analysis-forecast-wav-hourly',
+                         data_des.data_id)
+        self.assertEqual(('time', 'latitude', 'longitude'),
+                         data_des.data_vars.get('VHM0').dims)
+
+    @patch.object(CmemsDataOpener, "get_xarray_datastore")
+    def test_open_data(self, mock_get_xarray_datastore):
+        mock_get_xarray_datastore.return_value = create_cmems_dataset()
+        mocked_ds = self.datastore.open_data(self.dataset_id)
+        self.assertIsInstance(mocked_ds, xr.Dataset)
+
+    @patch.object(CmemsDataOpener, "get_xarray_datastore")
+    def test_get_open_data_params(self, mock_get_xarray_datastore):
+        mock_get_xarray_datastore.return_value = create_cmems_dataset()
+        open_params = self.datastore.get_open_data_params_schema(
+            self.dataset_id)
+        self.assertIsInstance(open_params, JsonObjectSchema)
+
+    def test_get_data_types(self):
+        self.assertEqual(('dataset',), self.datastore.get_data_types())

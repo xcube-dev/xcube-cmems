@@ -10,3 +10,4 @@ dependencies:
   - lxml >=4.9.1
   - owslib
   - pyproj
+  - mock

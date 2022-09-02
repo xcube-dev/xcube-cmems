@@ -18,22 +18,20 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import xarray as xr
 from typing import Any
 from typing import Tuple
 from typing import Container
 from typing import Union
 from typing import Iterator
 from typing import Dict
-
-import pyproj
-import xarray as xr
 from pydap.client import open_url
-
+from xcube.core.gridmapping import GridMapping
 from xcube.core.store import DataType
 from xcube.core.store import DataStoreError
 from xcube.core.store import DATASET_TYPE
 from xcube.core.store import DataDescriptor
-from .cmems import Cmems
+from cmems import Cmems
 from xcube.core.store import DataOpener
 from xcube.core.store import DataStore
 from xcube.core.store import DataTypeLike
@@ -90,32 +88,24 @@ class CmemsDataOpener(DataOpener):
         return var_descriptors
 
     def describe_data(self, data_id: str) -> DatasetDescriptor:
-
-        pydap_ds = self.copernicusmarine_datastore
-        xr_ds = xr.open_dataset(pydap_ds)
+        xr_ds = self.get_xarray_datastore()
+        gm = GridMapping.from_dataset(xr_ds)
         attrs = xr_ds.attrs
         var_descriptors = self._get_var_descriptors(xr_ds.data_vars)
         coord_descriptors = self._get_var_descriptors(xr_ds.coords)
-
-        bbox = (round(float(attrs['westernmost_longitude'])),
-                round(float(attrs['southernmost_latitude'])),
-                round(float(attrs['easternmost_longitude'])),
-                round(float(attrs['northernmost_latitude'])),
-                )
-        # TODO: get crs from csw
-        # TODO : Ask Norman how to get spatial_resolution,
-        #  time_range,time_period
-
+        # TODO : time_period
+        temporal_coverage = (str(xr_ds.time[0].data).split('T')[0],
+                             str(xr_ds.time[-1].data).split('T')[0])
         descriptor = DatasetDescriptor(data_id,
                                        data_type=self._data_type,
-                                       # crs=crs,
+                                       crs=gm.crs,
                                        dims=xr_ds.dims,
                                        coords=coord_descriptors,
                                        data_vars=var_descriptors,
                                        attrs=attrs,
-                                       bbox=bbox,
-                                       # spatial_res=spatial_resolution,
-                                       # time_range=temporal_coverage,
+                                       bbox=gm.xy_bbox,
+                                       spatial_res=gm.xy_res,
+                                       time_range=temporal_coverage,
                                        # time_period=temporal_resolution
                                        )
         data_schema = self._get_open_data_params_schema(descriptor)
@@ -137,6 +127,10 @@ class CmemsDataOpener(DataOpener):
 
         return data_store
 
+    def get_xarray_datastore(self):
+        pydap_ds = self.copernicusmarine_datastore
+        return xr.open_dataset(pydap_ds)
+
     def open_data(self, data_id: str, **open_params) -> xr.Dataset:
         # @TODO: Remove the block comment later
         assert_not_none(data_id)
@@ -144,9 +138,7 @@ class CmemsDataOpener(DataOpener):
         cmems_schema.validate_instance(open_params)
         # cube_kwargs, open_params = cmems_schema.process_kwargs_subset(
         #     open_params, ('variable_names', 'time_range', 'bbox'))
-        data_store = self.copernicusmarine_datastore
-        ds = xr.open_dataset(data_store)
-        return ds
+        return self.get_xarray_datastore()
 
     def get_open_data_params_schema(self,
                                     data_id: str = None) -> JsonObjectSchema:
@@ -166,21 +158,17 @@ class CmemsDataOpener(DataOpener):
             time_range=JsonDateSchema.new_range(min_date, max_date)
         )
         if dsd:
-            try:
-                if pyproj.CRS.from_string(dsd.crs).is_geographic:
-                    min_lon = dsd.bbox[0] if dsd and dsd.bbox else -180
-                    min_lat = dsd.bbox[1] if dsd and dsd.bbox else -90
-                    max_lon = dsd.bbox[2] if dsd and dsd.bbox else 180
-                    max_lat = dsd.bbox[3] if dsd and dsd.bbox else 90
-                    bbox = JsonArraySchema(items=(
-                        JsonNumberSchema(minimum=min_lon, maximum=max_lon),
-                        JsonNumberSchema(minimum=min_lat, maximum=max_lat),
-                        JsonNumberSchema(minimum=min_lon, maximum=max_lon),
-                        JsonNumberSchema(minimum=min_lat, maximum=max_lat)))
-                    dataset_params['bbox'] = bbox
-            except pyproj.exceptions.CRSError:
-                # do not set bbox then
-                pass
+            if dsd.crs.is_geographic:
+                min_lon = dsd.bbox[0] if dsd and dsd.bbox else -180
+                min_lat = dsd.bbox[1] if dsd and dsd.bbox else -90
+                max_lon = dsd.bbox[2] if dsd and dsd.bbox else 180
+                max_lat = dsd.bbox[3] if dsd and dsd.bbox else 90
+                bbox = JsonArraySchema(items=(
+                    JsonNumberSchema(minimum=min_lon, maximum=max_lon),
+                    JsonNumberSchema(minimum=min_lat, maximum=max_lat),
+                    JsonNumberSchema(minimum=min_lon, maximum=max_lon),
+                    JsonNumberSchema(minimum=min_lat, maximum=max_lat)))
+                dataset_params['bbox'] = bbox
         cmems_schema = JsonObjectSchema(
             properties=dict(**dataset_params),
             required=[
@@ -205,7 +193,6 @@ class CmemsDataStore(DataStore):
     def __init__(self, **store_params):
         cmems_schema = self.get_data_store_params_schema()
         cmems_schema.validate_instance(store_params)
-        # self._dataset_opener = CmemsDataOpener(cmems, dataset_id)
         cmems_kwargs, store_params = cmems_schema.process_kwargs_subset(
             store_params, (
                 'cmems_user',
@@ -235,7 +222,7 @@ class CmemsDataStore(DataStore):
         dataset_ids = self._dataset_opener.cmems.get_all_dataset_ids()
         return_tuples = include_attrs is not None
         include_titles = return_tuples and 'title' in include_attrs
-        for data_id, title in dataset_ids.values():
+        for data_id, title in dataset_ids.items():
             if return_tuples:
                 if include_titles:
                     yield title, data_id
@@ -278,7 +265,7 @@ class CmemsDataStore(DataStore):
 
     def search_data(self, data_type: DataTypeLike = None, **search_params) -> \
             Iterator[DataDescriptor]:
-        pass
+        raise NotImplementedError("Search Data is not supported yet")
 
     @classmethod
     def get_search_params_schema(cls,
