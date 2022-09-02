@@ -72,7 +72,7 @@ class Cmems:
         return urls
 
     @staticmethod
-    def get_csw_records(csw, pagesize=10, max_records=300) -> Dict[Any]:
+    def get_csw_records(csw, pagesize=10, max_records=300) -> Dict[Any, Any]:
         """
         Iterate max_records/pagesize times until the requested value in
         max_records is reached.
