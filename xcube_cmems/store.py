@@ -19,6 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import xarray as xr
+import logging
 from typing import Any
 from typing import List
 from typing import Tuple
@@ -46,14 +47,13 @@ from xcube.util.jsonschema import JsonStringSchema
 from xcube.util.jsonschema import JsonDateSchema
 from xcube_cmems.constants import DATASET_OPENER_ID
 
+_LOG = logging.getLogger('xcube')
+
 
 class CmemsDataOpener(DataOpener):
     """
        Cmems implementation of the ``xcube.core.store.DataOpener``
        interface.
-
-       Please refer to the :math:open_data method for the list of possible
-       open parameters.
        """
 
     def __init__(self,
@@ -125,10 +125,12 @@ class CmemsDataOpener(DataOpener):
     def copernicusmarine_datastore(self):
         urls = self.cmems.get_opendap_urls()
         try:
+            _LOG.info(f'Getting pydap data store from {urls[0]}')
             data_store = self.get_pydap_datastore(urls[0], self.cmems.session)
         except AttributeError:
+            _LOG.info(f'Getting data store from {urls[0]} failed,'
+                      f'Now Getting pydap data store from {urls[1]}')
             data_store = self.get_pydap_datastore(urls[1], self.cmems.session)
-
         return data_store
 
     def get_xarray_datastore(self):
@@ -140,8 +142,6 @@ class CmemsDataOpener(DataOpener):
         assert_not_none(data_id)
         cmems_schema = self.get_open_data_params_schema(data_id)
         cmems_schema.validate_instance(open_params)
-        # cube_kwargs, open_params = cmems_schema.process_kwargs_subset(
-        #     open_params, ('variable_names', 'time_range', 'bbox'))
         return self.get_xarray_datastore()
 
     def get_open_data_params_schema(self,
@@ -193,6 +193,10 @@ class CmemsDatasetOpener(CmemsDataOpener):
 
 
 class CmemsDataStore(DataStore):
+    """
+       CMEMS implementation of the ``xcube.core.store.DataStore``
+       interface.
+       """
 
     def __init__(self, **store_params):
         cmems_schema = self.get_data_store_params_schema()

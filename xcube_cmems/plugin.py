@@ -32,21 +32,11 @@ def init_plugin(ext_registry: extension.ExtensionRegistry):
         point=EXTENSION_POINT_DATA_STORES,
         name=DATA_STORE_ID,
         description='Cmems DataStore',
-        data_store_notices=[dict(id='terminologyClarification',
-                                 title='Terminology Clarification',
-                                 # content=data_store_notice_content,
-                                 intent='primary',
-                                 icon='info-sign'),
-                            dict(id='dataCompleteness',
-                                 title='Data Completeness',
-                                 # content=data_completeness_content,
-                                 intent='warning',
-                                 icon='warning-sign')])
+        )
     ext_registry.add_extension(
         loader=extension.import_component(
             'xcube_cmems.store:CmemsDatasetOpener'),
         point=EXTENSION_POINT_DATA_OPENERS,
         name=DATASET_OPENER_ID,
-        description='xarray.Dataset in Zarr format'
-                    ' from CMEMS API'
+        description='xarray.Dataset from CMEMS API'
     )

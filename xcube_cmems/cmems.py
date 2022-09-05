@@ -20,8 +20,8 @@
 # SOFTWARE.
 
 import os
+import logging
 from urllib.parse import urlsplit
-
 from pydap.cas.get_cookies import setup_session
 from typing import List
 from typing import Dict
@@ -34,10 +34,21 @@ from owslib.fes import SortBy
 from owslib.fes import SortProperty
 from owslib.csw import CatalogueServiceWeb
 
+_LOG = logging.getLogger('xcube')
+
 
 class Cmems:
     """
-        Represents the CMEMS Data Portal
+        Represents the CMEMS opendap API
+        :param cmems_user: CMEMS UserID
+        :param cmems_user_password: CMEMS User Password
+        :param dataset_id: opendap dataset id
+        :param cas_url: CMEMS cas url
+        :param csw_url: CMEMS csw url
+        :param databases: databases available - nrt (near real time)
+        or my(multi-year)
+        :param server: odap server
+
     """
 
     def __init__(self,
@@ -64,6 +75,10 @@ class Cmems:
                                  )
 
     def get_opendap_urls(self) -> List[str]:
+        """
+        Constructs opendap urls given the dataset id
+        :return: List of opendap urls
+        """
         urls = []
         for i in range(len(self.databases)):
             urls.append(os.path.join("https://" + self.databases[i] + "." +
@@ -76,6 +91,7 @@ class Cmems:
         """
         Iterate max_records/pagesize times until the requested value in
         max_records is reached.
+        return: CSW records
         """
         # Iterate over sorted results.
         sortby = SortBy([SortProperty("dc:title", "ASC")])
@@ -92,13 +108,17 @@ class Cmems:
             csw_records.update(csw.records)
             if csw.results["nextrecord"] == 0:
                 break
-            start_position += pagesize + 1  # Last one is included.
+            start_position += pagesize + 1
             if start_position >= max_records:
                 break
         csw.records.update(csw_records)
         return csw_records
 
     def get_all_dataset_ids(self) -> Dict[str, Any]:
+        """
+        get all the opendap dataset ids by iterating through all CSW records
+        :return: Dictionary of opendap dataset ids
+        """
         csw = CatalogueServiceWeb(self._csw_url, timeout=60)
         csw_rec = self.get_csw_records(csw, pagesize=10, max_records=2000)
         csw_obj_list = list(csw_rec.values())
