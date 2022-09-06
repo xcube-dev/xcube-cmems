@@ -28,6 +28,8 @@ from typing import Union
 from typing import Iterator
 from typing import Dict
 from pydap.client import open_url
+from xarray.backends import PydapDataStore
+from xarray.core.dataset import DataVariables
 from xcube.core.gridmapping import GridMapping
 from xcube.core.store import DataType
 from xcube.core.store import DataStoreError
@@ -72,7 +74,8 @@ class CmemsDataOpener(DataOpener):
         return data_id in self.dataset_names()
 
     @staticmethod
-    def _get_var_descriptors(xr_data_vars) -> Dict[str, VariableDescriptor]:
+    def _get_var_descriptors(xr_data_vars: DataVariables) -> \
+            Dict[str, VariableDescriptor]:
         var_descriptors = {}
         for var_key, var_value in xr_data_vars.variables.mapping.items():
             var_name = var_key
@@ -117,12 +120,12 @@ class CmemsDataOpener(DataOpener):
         return descriptor
 
     @staticmethod
-    def get_pydap_datastore(url, session):
-        return xr.backends.PydapDataStore(open_url(url, session=session,
-                                                   user_charset='utf-8'))
+    def get_pydap_datastore(url: str, session) -> PydapDataStore:
+        return PydapDataStore(open_url(url, session=session,
+                                       user_charset='utf-8'))
 
     @property
-    def copernicusmarine_datastore(self):
+    def copernicusmarine_datastore(self) -> PydapDataStore:
         urls = self.cmems.get_opendap_urls()
         try:
             _LOG.info(f'Getting pydap data store from {urls[0]}')
@@ -133,7 +136,7 @@ class CmemsDataOpener(DataOpener):
             data_store = self.get_pydap_datastore(urls[1], self.cmems.session)
         return data_store
 
-    def get_xarray_datastore(self):
+    def get_xarray_datastore(self) -> xr.Dataset:
         pydap_ds = self.copernicusmarine_datastore
         return xr.open_dataset(pydap_ds)
 
