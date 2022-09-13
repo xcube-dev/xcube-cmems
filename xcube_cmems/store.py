@@ -21,6 +21,7 @@
 import xarray as xr
 import numpy as np
 import pandas as pd
+import zarr
 import logging
 from typing import Any
 from typing import List
@@ -31,6 +32,7 @@ from typing import Iterator
 from typing import Dict
 from pydap.client import open_url
 from xarray.backends import PydapDataStore
+from pydap.model import DatasetType
 from xarray.core.dataset import DataVariables
 from xcube.core.gridmapping import GridMapping
 from xcube.core.store import DataType
@@ -113,7 +115,8 @@ class CmemsDataOpener(DataOpener):
                 return time_period.split('T')[0]
 
     def describe_data(self, data_id: str) -> DatasetDescriptor:
-        xr_ds = self.open_dataset()
+        pydap_ds = self.copernicusmarine_datastore
+        xr_ds = xr.open_dataset(pydap_ds)
         gm = GridMapping.from_dataset(xr_ds)
         attrs = xr_ds.attrs
         var_descriptors = self._get_var_descriptors(xr_ds.data_vars)
@@ -153,16 +156,29 @@ class CmemsDataOpener(DataOpener):
             data_store = self.get_pydap_datastore(urls[1], self.cmems.session)
         return data_store
 
-    def open_dataset(self) -> xr.Dataset:
-        pydap_ds = self.copernicusmarine_datastore
-        return xr.open_dataset(pydap_ds)
+    def get_pydap_dataset(self) -> DatasetType:
+        urls = self.cmems.get_opendap_urls()
+        open_url_kwargs = dict(
+            session=self.cmems.session,
+            user_charset='utf-8',  # CMEMS-specific
+            output_grid=False  # retrieve only main arrays
+        )
+        try:
+            pyd_dataset = open_url(urls[0], **open_url_kwargs)
+        except AttributeError:
+            pyd_dataset = open_url(urls[1], **open_url_kwargs)
+        return pyd_dataset
 
-    def del_chunks_from_time_array(self, pyd_dataset):
-        arrays = self.get_generic_arrays(pyd_dataset)
-        # Uncomment to see the effect of chunked time --> many slow requests
+    def open_dataset(self) -> xr.Dataset:
+        pydap_ds = self.get_pydap_dataset()
+        global_attrs = dict(pydap_ds.attributes.get('NC_GLOBAL') or {})
+        arrays = self.get_generic_arrays(pydap_ds)
         for array in arrays:
             if array["name"] == "time":
                 del array["chunks"]
+        zarr_store = GenericZarrStore(*arrays, attrs=global_attrs)
+        zarr_store = zarr.LRUStoreCache(zarr_store, max_size=2 ** 28)
+        return xr.open_dataset(zarr_store, engine="zarr")
 
     @classmethod
     def get_data(cls, pyd_var=None, chunk_info=None):
@@ -181,10 +197,6 @@ class CmemsDataOpener(DataOpener):
         arrays = []
         for name, pyd_var in pyd_dataset.items():
             attrs = dict(pyd_var.attributes)
-            # Note, it seems that there is no advantage in using the
-            # _ChunkSizes which come from original NetCDF files.
-            # Users should specify the desired chunksizes on their own.
-            # For example, coordinate arrays should not be chunked at all!
             chunks = attrs.pop("_ChunkSizes", None)
             chunks = (chunks,) if isinstance(chunks, int) else \
                 tuple(chunks) if chunks is not None else None
@@ -196,7 +208,7 @@ class CmemsDataOpener(DataOpener):
                 shape=pyd_var.shape,
                 chunks=chunks,
                 fill_value=fill_value,
-                get_data=self.get_data(),
+                get_data=self.get_data,
                 get_data_params=dict(pyd_var=pyd_var),
                 attrs=attrs,
                 compressor=None,

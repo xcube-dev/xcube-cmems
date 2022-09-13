@@ -36,7 +36,7 @@ from .sample_data import get_all_dataset_results
 class CmemsDataOpenerTest(unittest.TestCase):
 
     def setUp(self) -> None:
-        self.dataset_id = "dummy"
+        self.dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
         load_dotenv()
         cmems_user = os.getenv("CMEMS_USER")
         cmems_user_password = os.getenv("CMEMS_PASSWORD")
@@ -46,9 +46,13 @@ class CmemsDataOpenerTest(unittest.TestCase):
                         }
         self.opener = CmemsDatasetOpener(**cmems_params)
 
-    @patch.object(CmemsDataOpener, "get_xarray_datastore")
-    def test_open_data(self, mock_get_xarray_datastore):
-        mock_get_xarray_datastore.return_value = create_cmems_dataset()
+    # @patch.object(CmemsDataOpener, "open_dataset")
+    # def test_open_data(self, mock_open_dataset):
+    #     mock_open_dataset.return_value = create_cmems_dataset()
+    #     mocked_ds = self.opener.open_data(self.dataset_id)
+    #     self.assertIsInstance(mocked_ds, xr.Dataset)
+
+    def test_open_data(self):
         mocked_ds = self.opener.open_data(self.dataset_id)
         self.assertIsInstance(mocked_ds, xr.Dataset)
 
@@ -96,11 +100,15 @@ class CmemsDataStoreTest(unittest.TestCase):
         self.assertEqual(('time', 'latitude', 'longitude'),
                          data_des.data_vars.get('VHM0').dims)
 
-    @patch.object(CmemsDataOpener, "get_xarray_datastore")
-    def test_open_data(self, mock_get_xarray_datastore):
-        mock_get_xarray_datastore.return_value = create_cmems_dataset()
+    def test_open_data(self):
         mocked_ds = self.datastore.open_data(self.dataset_id)
         self.assertIsInstance(mocked_ds, xr.Dataset)
+
+    # @patch.object(CmemsDataOpener, "get_xarray_datastore")
+    # def test_open_data(self, mock_get_xarray_datastore):
+    #     mock_get_xarray_datastore.return_value = create_cmems_dataset()
+    #     mocked_ds = self.datastore.open_data(self.dataset_id)
+    #     self.assertIsInstance(mocked_ds, xr.Dataset)
 
     @patch.object(CmemsDataOpener, "get_xarray_datastore")
     def test_get_open_data_params(self, mock_get_xarray_datastore):

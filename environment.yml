@@ -11,3 +11,4 @@ dependencies:
   - owslib
   - pyproj
   - mock
+  - zarr
