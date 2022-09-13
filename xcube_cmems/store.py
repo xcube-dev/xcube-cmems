@@ -19,6 +19,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import xarray as xr
+import numpy as np
+import pandas as pd
 import logging
 from typing import Any
 from typing import List
@@ -94,13 +96,28 @@ class CmemsDataOpener(DataOpener):
                                    attrs=var_attrs)
         return var_descriptors
 
+    @staticmethod
+    def _determine_time_period(data: xr.Dataset):
+        if 'time' in data and len(data['time'].values) > 1:
+            time_diff = data['time'].diff(
+                dim=data['time'].dims[0]
+            ).values.astype(np.float64)
+            time_res = time_diff[0]
+            time_regular = np.allclose(time_res, time_diff, 1e-8)
+            if time_regular:
+                time_period = pd.to_timedelta(time_res).isoformat()
+                # remove leading P
+                time_period = time_period[1:]
+                # removing sub-day precision
+                return time_period.split('T')[0]
+
     def describe_data(self, data_id: str) -> DatasetDescriptor:
         xr_ds = self.get_xarray_datastore()
         gm = GridMapping.from_dataset(xr_ds)
         attrs = xr_ds.attrs
         var_descriptors = self._get_var_descriptors(xr_ds.data_vars)
         coord_descriptors = self._get_var_descriptors(xr_ds.coords)
-        # TODO : time_period
+        temporal_resolution = self._determine_time_period(xr_ds)
         temporal_coverage = (str(xr_ds.time[0].data).split('T')[0],
                              str(xr_ds.time[-1].data).split('T')[0])
         descriptor = DatasetDescriptor(data_id,
@@ -113,7 +130,7 @@ class CmemsDataOpener(DataOpener):
                                        bbox=gm.xy_bbox,
                                        spatial_res=gm.xy_res,
                                        time_range=temporal_coverage,
-                                       # time_period=temporal_resolution
+                                       time_period=temporal_resolution
                                        )
         data_schema = self._get_open_data_params_schema(descriptor)
         descriptor.open_params_schema = data_schema
