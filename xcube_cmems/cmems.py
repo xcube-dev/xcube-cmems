@@ -121,7 +121,7 @@ class Cmems:
         :return: Dictionary of opendap dataset ids
         """
         csw = CatalogueServiceWeb(self._csw_url, timeout=60)
-        csw_rec = self.get_csw_records(csw, pagesize=10, max_records=2000)
+        csw_rec = self.get_csw_records(csw, max_records=2000)
         csw_obj_list = list(csw_rec.values())
         for record in csw_obj_list:
             if len(record.uris) > 0:

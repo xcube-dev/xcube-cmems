@@ -43,6 +43,7 @@ from xcube.core.store import DataStore
 from xcube.core.store import DataTypeLike
 from xcube.core.store import DatasetDescriptor
 from xcube.core.store import VariableDescriptor
+from xcube.core.zarrstore import GenericZarrStore
 from xcube.util.assertions import assert_not_none
 from xcube.util.jsonschema import JsonObjectSchema
 from xcube.util.jsonschema import JsonNumberSchema
@@ -112,7 +113,7 @@ class CmemsDataOpener(DataOpener):
                 return time_period.split('T')[0]
 
     def describe_data(self, data_id: str) -> DatasetDescriptor:
-        xr_ds = self.get_xarray_datastore()
+        xr_ds = self.open_dataset()
         gm = GridMapping.from_dataset(xr_ds)
         attrs = xr_ds.attrs
         var_descriptors = self._get_var_descriptors(xr_ds.data_vars)
@@ -130,8 +131,7 @@ class CmemsDataOpener(DataOpener):
                                        bbox=gm.xy_bbox,
                                        spatial_res=gm.xy_res,
                                        time_range=temporal_coverage,
-                                       time_period=temporal_resolution
-                                       )
+                                       time_period=temporal_resolution)
         data_schema = self._get_open_data_params_schema(descriptor)
         descriptor.open_params_schema = data_schema
         return descriptor
@@ -153,16 +153,64 @@ class CmemsDataOpener(DataOpener):
             data_store = self.get_pydap_datastore(urls[1], self.cmems.session)
         return data_store
 
-    def get_xarray_datastore(self) -> xr.Dataset:
+    def open_dataset(self) -> xr.Dataset:
         pydap_ds = self.copernicusmarine_datastore
         return xr.open_dataset(pydap_ds)
+
+    def del_chunks_from_time_array(self, pyd_dataset):
+        arrays = self.get_generic_arrays(pyd_dataset)
+        # Uncomment to see the effect of chunked time --> many slow requests
+        for array in arrays:
+            if array["name"] == "time":
+                del array["chunks"]
+
+    @classmethod
+    def get_data(cls, pyd_var=None, chunk_info=None):
+        array_slices = chunk_info["slices"]
+        # Actual pydap data access
+        if hasattr(pyd_var, "array"):
+            data = pyd_var.array[array_slices]
+        else:
+            data = pyd_var[array_slices]
+        return np.array(data)
+
+    def get_generic_arrays(self, pyd_dataset) -> List[GenericZarrStore.Array]:
+        """Get the list of generic arrays from the list of pydap
+        variables in *pyd_dataset*.
+        """
+        arrays = []
+        for name, pyd_var in pyd_dataset.items():
+            attrs = dict(pyd_var.attributes)
+            # Note, it seems that there is no advantage in using the
+            # _ChunkSizes which come from original NetCDF files.
+            # Users should specify the desired chunksizes on their own.
+            # For example, coordinate arrays should not be chunked at all!
+            chunks = attrs.pop("_ChunkSizes", None)
+            chunks = (chunks,) if isinstance(chunks, int) else \
+                tuple(chunks) if chunks is not None else None
+            fill_value = attrs.pop("_FillValue", None)
+            array = GenericZarrStore.Array(
+                name=name,
+                dtype=pyd_var.dtype.str,
+                dims=pyd_var.dimensions,
+                shape=pyd_var.shape,
+                chunks=chunks,
+                fill_value=fill_value,
+                get_data=self.get_data(),
+                get_data_params=dict(pyd_var=pyd_var),
+                attrs=attrs,
+                compressor=None,
+                chunk_encoding="ndarray",
+            )
+            arrays.append(array)
+        return arrays
 
     def open_data(self, data_id: str, **open_params) -> xr.Dataset:
         # @TODO: TMH : use open_params
         assert_not_none(data_id)
         cmems_schema = self.get_open_data_params_schema(data_id)
         cmems_schema.validate_instance(open_params)
-        return self.get_xarray_datastore()
+        return self.open_dataset()
 
     def get_open_data_params_schema(self,
                                     data_id: str = None) -> JsonObjectSchema:
@@ -293,7 +341,8 @@ class CmemsDataStore(DataStore):
 
     def search_data(self, data_type: DataTypeLike = None, **search_params) -> \
             Iterator[DataDescriptor]:
-        raise NotImplementedError("Search Data is not supported yet")
+        raise NotImplementedError("search_data() operation is not "
+                                  "supported yet")
 
     @classmethod
     def get_search_params_schema(cls,

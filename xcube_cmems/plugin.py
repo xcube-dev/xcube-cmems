@@ -18,6 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
 from xcube.util import extension
 from xcube.constants import EXTENSION_POINT_DATA_OPENERS
 from xcube.constants import EXTENSION_POINT_DATA_STORES
@@ -32,7 +33,7 @@ def init_plugin(ext_registry: extension.ExtensionRegistry):
         point=EXTENSION_POINT_DATA_STORES,
         name=DATA_STORE_ID,
         description='Cmems DataStore',
-        )
+    )
     ext_registry.add_extension(
         loader=extension.import_component(
             'xcube_cmems.store:CmemsDatasetOpener'),
