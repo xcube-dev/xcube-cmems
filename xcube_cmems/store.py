@@ -18,6 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
 import xarray as xr
 import numpy as np
 import pandas as pd
@@ -115,7 +116,7 @@ class CmemsDataOpener(DataOpener):
                 return time_period.split('T')[0]
 
     def describe_data(self, data_id: str) -> DatasetDescriptor:
-        pydap_ds = self.copernicusmarine_datastore
+        pydap_ds = self.pydap_store
         xr_ds = xr.open_dataset(pydap_ds)
         gm = GridMapping.from_dataset(xr_ds)
         attrs = xr_ds.attrs
@@ -139,21 +140,20 @@ class CmemsDataOpener(DataOpener):
         descriptor.open_params_schema = data_schema
         return descriptor
 
-    @staticmethod
-    def get_pydap_datastore(url: str, session) -> PydapDataStore:
-        return PydapDataStore(open_url(url, session=session,
-                                       user_charset='utf-8'))
-
     @property
-    def copernicusmarine_datastore(self) -> PydapDataStore:
+    def pydap_store(self) -> PydapDataStore:
         urls = self.cmems.get_opendap_urls()
         try:
             _LOG.info(f'Getting pydap data store from {urls[0]}')
-            data_store = self.get_pydap_datastore(urls[0], self.cmems.session)
+            data_store = PydapDataStore(open_url(urls[0],
+                                                 session=self.cmems.session,
+                                                 user_charset='utf-8'))
         except AttributeError:
             _LOG.info(f'Getting data store from {urls[0]} failed,'
                       f'Now Getting pydap data store from {urls[1]}')
-            data_store = self.get_pydap_datastore(urls[1], self.cmems.session)
+            data_store = PydapDataStore(open_url(urls[1],
+                                                 session=self.cmems.session,
+                                                 user_charset='utf-8'))
         return data_store
 
     def get_pydap_dataset(self) -> DatasetType:
@@ -164,8 +164,11 @@ class CmemsDataOpener(DataOpener):
             output_grid=False  # retrieve only main arrays
         )
         try:
+            _LOG.info(f'Getting pydap dataset from {urls[0]}')
             pyd_dataset = open_url(urls[0], **open_url_kwargs)
         except AttributeError:
+            _LOG.info(f'Getting dataset from {urls[0]} failed,'
+                      f'Now Getting pydap dataset from {urls[1]}')
             pyd_dataset = open_url(urls[1], **open_url_kwargs)
         return pyd_dataset
 
@@ -178,7 +181,7 @@ class CmemsDataOpener(DataOpener):
                 del array["chunks"]
         zarr_store = GenericZarrStore(*arrays, attrs=global_attrs)
         zarr_store = zarr.LRUStoreCache(zarr_store, max_size=2 ** 28)
-        return xr.open_dataset(zarr_store, engine="zarr")
+        return xr.open_zarr(zarr_store)
 
     @classmethod
     def get_data(cls, pyd_var=None, chunk_info=None):

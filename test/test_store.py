@@ -18,8 +18,10 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
 import os
 import unittest
+import numpy as np
 import xarray as xr
 import xcube.core.store.descriptor as xcube_des
 from dotenv import load_dotenv
@@ -46,27 +48,31 @@ class CmemsDataOpenerTest(unittest.TestCase):
                         }
         self.opener = CmemsDatasetOpener(**cmems_params)
 
-    # @patch.object(CmemsDataOpener, "open_dataset")
-    # def test_open_data(self, mock_open_dataset):
-    #     mock_open_dataset.return_value = create_cmems_dataset()
-    #     mocked_ds = self.opener.open_data(self.dataset_id)
-    #     self.assertIsInstance(mocked_ds, xr.Dataset)
-
-    def test_open_data(self):
+    @patch.object(CmemsDataOpener, "open_dataset")
+    def test_open_data(self, mock_open_dataset):
+        mock_open_dataset.return_value = create_cmems_dataset()
         mocked_ds = self.opener.open_data(self.dataset_id)
         self.assertIsInstance(mocked_ds, xr.Dataset)
 
-    @patch.object(CmemsDataOpener, "get_xarray_datastore")
-    def test_describe_data(self, mock_get_xarray_datastore):
-        mock_get_xarray_datastore.return_value = create_cmems_dataset()
-        dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
-        data_des = self.opener.describe_data(dataset_id)
+    def test_describe_data(self):
+        data_des = self.opener.describe_data(self.dataset_id)
         self.assertIsInstance(data_des, xcube_des.DatasetDescriptor)
-        self.assertEqual(("2022-01-01", "2022-01-08"), data_des.time_range)
+        self.assertEqual(('2018-12-01', '2022-09-20'), data_des.time_range)
         self.assertEqual('dataset-bal-analysis-forecast-wav-hourly',
                          data_des.data_id)
-        self.assertEqual(('time', 'latitude', 'longitude'),
+        self.assertEqual(('time', 'lat', 'lon'),
                          data_des.data_vars.get('VHM0').dims)
+        self.assertEqual(764, data_des.dims['lon'])
+        self.assertEqual(775, data_des.dims['lat'])
+        self.assertEqual(33336, data_des.dims['time'])
+        self.assertTrue('VTPK' in data_des.data_vars)
+        self.assertEqual(3, data_des.data_vars['VTPK'].ndim)
+        self.assertEqual(('time', 'lat', 'lon'),
+                         data_des.data_vars['VTPK'].dims)
+        self.assertEqual(np.float32,
+                         data_des.data_vars['VTPK'].dtype)
+        self.assertEqual('epsg:4326', data_des.crs)
+        self.assertEqual('0D', data_des.time_period)
 
 
 class CmemsDataStoreTest(unittest.TestCase):
@@ -89,30 +95,33 @@ class CmemsDataStoreTest(unittest.TestCase):
         dataset_ids = list(dataset_ids)
         self.assertEqual(520, len(dataset_ids))
 
-    @patch.object(CmemsDataOpener, "get_xarray_datastore")
-    def test_describe_data(self, mock_get_xarray_datastore):
-        mock_get_xarray_datastore.return_value = create_cmems_dataset()
+    def test_describe_data(self):
         data_des = self.datastore.describe_data(self.dataset_id)
         self.assertIsInstance(data_des, xcube_des.DatasetDescriptor)
-        self.assertEqual(("2022-01-01", "2022-01-08"), data_des.time_range)
+        self.assertEqual(('2018-12-01', '2022-09-20'), data_des.time_range)
         self.assertEqual('dataset-bal-analysis-forecast-wav-hourly',
                          data_des.data_id)
-        self.assertEqual(('time', 'latitude', 'longitude'),
+        self.assertEqual(('time', 'lat', 'lon'),
                          data_des.data_vars.get('VHM0').dims)
+        self.assertEqual(764, data_des.dims['lon'])
+        self.assertEqual(775, data_des.dims['lat'])
+        self.assertEqual(33336, data_des.dims['time'])
+        self.assertTrue('VTPK' in data_des.data_vars)
+        self.assertEqual(3, data_des.data_vars['VTPK'].ndim)
+        self.assertEqual(('time', 'lat', 'lon'),
+                         data_des.data_vars['VTPK'].dims)
+        self.assertEqual(np.float32,
+                         data_des.data_vars['VTPK'].dtype)
+        self.assertEqual('epsg:4326', data_des.crs)
+        self.assertEqual('0D', data_des.time_period)
 
-    def test_open_data(self):
+    @patch.object(CmemsDataOpener, "open_dataset")
+    def test_open_data(self, mock_open_dataset):
+        mock_open_dataset.return_value = create_cmems_dataset()
         mocked_ds = self.datastore.open_data(self.dataset_id)
         self.assertIsInstance(mocked_ds, xr.Dataset)
 
-    # @patch.object(CmemsDataOpener, "get_xarray_datastore")
-    # def test_open_data(self, mock_get_xarray_datastore):
-    #     mock_get_xarray_datastore.return_value = create_cmems_dataset()
-    #     mocked_ds = self.datastore.open_data(self.dataset_id)
-    #     self.assertIsInstance(mocked_ds, xr.Dataset)
-
-    @patch.object(CmemsDataOpener, "get_xarray_datastore")
-    def test_get_open_data_params(self, mock_get_xarray_datastore):
-        mock_get_xarray_datastore.return_value = create_cmems_dataset()
+    def test_get_open_data_params(self):
         open_params = self.datastore.get_open_data_params_schema(
             self.dataset_id)
         self.assertIsInstance(open_params, JsonObjectSchema)
