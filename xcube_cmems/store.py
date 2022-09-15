@@ -203,7 +203,8 @@ class CmemsDataOpener(DataOpener):
         return arrays
 
     @staticmethod
-    def subset_cube_with_open_params(ds, open_params) -> xr.Dataset:
+    def subset_cube_with_open_params(ds: xr.Dataset,
+                                     **open_params) -> xr.Dataset:
         if 'time_range' in open_params:
             ds = ds.sel(time=slice(open_params.get('time_range')[0],
                                    open_params.get('time_range')[1]))
@@ -225,7 +226,7 @@ class CmemsDataOpener(DataOpener):
                                                 'bbox'))
         ds = self.open_dataset()
         if open_params:
-            ds = self.subset_cube_with_open_params(ds, open_params)
+            ds = self.subset_cube_with_open_params(ds, **open_params)
         return ds
 
     def get_open_data_params_schema(self,
