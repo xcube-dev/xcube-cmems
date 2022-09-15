@@ -32,7 +32,6 @@ from typing import Union
 from typing import Iterator
 from typing import Dict
 from pydap.client import open_url
-from xarray.backends import PydapDataStore
 from pydap.model import DatasetType
 from xarray.core.dataset import DataVariables
 from xcube.core.gridmapping import GridMapping
@@ -116,8 +115,7 @@ class CmemsDataOpener(DataOpener):
                 return time_period.split('T')[0]
 
     def describe_data(self, data_id: str) -> DatasetDescriptor:
-        pydap_ds = self.pydap_store
-        xr_ds = xr.open_dataset(pydap_ds)
+        xr_ds = self.open_dataset()
         gm = GridMapping.from_dataset(xr_ds)
         attrs = xr_ds.attrs
         var_descriptors = self._get_var_descriptors(xr_ds.data_vars)
@@ -139,22 +137,6 @@ class CmemsDataOpener(DataOpener):
         data_schema = self._get_open_data_params_schema(descriptor)
         descriptor.open_params_schema = data_schema
         return descriptor
-
-    @property
-    def pydap_store(self) -> PydapDataStore:
-        urls = self.cmems.get_opendap_urls()
-        try:
-            _LOG.info(f'Getting pydap data store from {urls[0]}')
-            data_store = PydapDataStore(open_url(urls[0],
-                                                 session=self.cmems.session,
-                                                 user_charset='utf-8'))
-        except AttributeError:
-            _LOG.info(f'Getting data store from {urls[0]} failed,'
-                      f'Now Getting pydap data store from {urls[1]}')
-            data_store = PydapDataStore(open_url(urls[1],
-                                                 session=self.cmems.session,
-                                                 user_charset='utf-8'))
-        return data_store
 
     def get_pydap_dataset(self) -> DatasetType:
         urls = self.cmems.get_opendap_urls()
@@ -220,12 +202,31 @@ class CmemsDataOpener(DataOpener):
             arrays.append(array)
         return arrays
 
+    @staticmethod
+    def subset_cube_with_open_params(ds, open_params) -> xr.Dataset:
+        if 'time_range' in open_params:
+            ds = ds.sel(time=slice(open_params.get('time_range')[0],
+                                   open_params.get('time_range')[1]))
+        if 'bbox' in open_params:
+            ds = ds.sel({"lat": slice(open_params.get('bbox')[1],
+                                      open_params.get('bbox')[3]),
+                         "lon": slice(open_params.get('bbox')[0],
+                                      open_params.get('bbox')[2])})
+        if 'variable_names' in open_params:
+            ds = ds[open_params.get('variable_names')]
+        return ds
+
     def open_data(self, data_id: str, **open_params) -> xr.Dataset:
-        # @TODO: TMH : use open_params
         assert_not_none(data_id)
         cmems_schema = self.get_open_data_params_schema(data_id)
         cmems_schema.validate_instance(open_params)
-        return self.open_dataset()
+        open_params, other_kwargs = cmems_schema.\
+            process_kwargs_subset(open_params, ('variable_names', 'time_range',
+                                                'bbox'))
+        ds = self.open_dataset()
+        if open_params:
+            ds = self.subset_cube_with_open_params(ds, open_params)
+        return ds
 
     def get_open_data_params_schema(self,
                                     data_id: str = None) -> JsonObjectSchema:
@@ -314,13 +315,11 @@ class CmemsDataStore(DataStore):
         return_tuples = include_attrs is not None
         include_titles = return_tuples and 'title' in include_attrs
         for data_id, title in dataset_ids.items():
+            if include_titles:
+                yield data_id, {'title': title}
             if return_tuples:
-                if include_titles:
-                    yield title, data_id
-                else:
-                    yield data_id, {}
-            else:
-                yield data_id
+                yield data_id, {}
+            yield data_id
 
     @classmethod
     def get_data_types(cls) -> Tuple[str, ...]:

@@ -7,7 +7,7 @@ import os
 
 def create_cmems_dataset():
     lat = xr.DataArray(np.linspace(0., 1., 5),
-                       dims=["latitude"],
+                       dims=["lat"],
                        attrs=dict(standard_name='latitude',
                                   long_name='latitude coordinate',
                                   units='degrees_north',
@@ -15,7 +15,7 @@ def create_cmems_dataset():
                                   step=0.08333588))
 
     lon = xr.DataArray(np.linspace(0., 1., 5),
-                       dims=["longitude"],
+                       dims=["lon"],
                        attrs=dict(standard_name='longitude',
                                   long_name='longitude_coordinate',
                                   units='degrees_east',
@@ -26,17 +26,27 @@ def create_cmems_dataset():
 
     VHM0 = xr.DataArray(
         data=np.zeros((8, 5, 5)),
-        dims=["time", "latitude", "longitude"],
+        dims=["time", "lat", "lon"],
         attrs=dict(long_name='Spectral significant wave height (Hm0)',
                    units='m',
                    standard_name='sea_surface_wave_significant_height',
                    cell_methods='time:point area:mean',
                    type_of_analysis='spectral analysis',
                    WMO_code=100,
-                   )
+                   ))
 
-    )
-    return xr.Dataset(dict(VHM0=VHM0),
+    VTPK = xr.DataArray(
+        data=np.zeros((8, 5, 5)),
+        dims=["time", "lat", "lon"],
+        attrs=dict(long_name='Spectral significant wave height (Hm0)',
+                   units='m',
+                   standard_name='sea_surface_wave_significant_height',
+                   cell_methods='time:point area:mean',
+                   type_of_analysis='spectral analysis',
+                   WMO_code=100,
+                   ))
+
+    return xr.Dataset(dict(VHM0=VHM0, VTPK=VTPK),
                       coords=dict(time=time, lon=lon, lat=lat),
                       attrs={
                           "title": "Mean fields from global wave model"
