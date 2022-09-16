@@ -4,7 +4,7 @@ channels:
   - defaults
 dependencies:
   # Required
-  - xcube >= 0.12
+  - xcube >= 0.12.1
   - python-dotenv
   - pydap
   - lxml >=4.9.1

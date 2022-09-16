@@ -161,9 +161,13 @@ class CmemsDataOpener(DataOpener):
         for array in arrays:
             if array["name"] == "time":
                 del array["chunks"]
+        max_cache_size: int = 2 ** 28
         zarr_store = GenericZarrStore(*arrays, attrs=global_attrs)
-        zarr_store = zarr.LRUStoreCache(zarr_store, max_size=2 ** 28)
-        return xr.open_zarr(zarr_store)
+        if max_cache_size:
+            zarr_store = zarr.LRUStoreCache(zarr_store, max_size=max_cache_size)
+        dataset = xr.open_zarr(zarr_store)
+        dataset.zarr_store.set(zarr_store)
+        return dataset
 
     @classmethod
     def get_data(cls, pyd_var=None, chunk_info=None):
