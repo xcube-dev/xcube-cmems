@@ -99,6 +99,9 @@ class CmemsDataStoreTest(unittest.TestCase):
         dataset_ids = self.datastore.get_data_ids()
         dataset_ids = list(dataset_ids)
         self.assertEqual(520, len(dataset_ids))
+        self.assertTrue("dataset-bal-analysis-forecast-wav-hourly" in
+                        dataset_ids)
+        self.assertTrue("MetO-NWS-PHY-qh-SSH" in dataset_ids)
 
     @patch.object(CmemsDataOpener, "open_dataset")
     def test_describe_data(self, mock_open_dataset):
