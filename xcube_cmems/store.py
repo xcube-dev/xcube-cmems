@@ -190,7 +190,10 @@ class CmemsDataOpener(DataOpener):
             chunks = attrs.pop("_ChunkSizes", None)
             chunks = (chunks,) if isinstance(chunks, int) else \
                 tuple(chunks) if chunks is not None else None
-            fill_value = attrs.pop("_FillValue", None)
+            fill_value = attrs.pop(
+                "_FillValue", 
+                float('NaN') if np.issubdtype(pyd_var.dtype, np.floating) else None
+            )
             array = GenericZarrStore.Array(
                 name=name,
                 dtype=pyd_var.dtype.str,
