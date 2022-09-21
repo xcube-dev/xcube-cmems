@@ -22,9 +22,11 @@
 import unittest
 import os
 
-from xcube_cmems.cmems import Cmems
 from dotenv import load_dotenv
 from mock import patch
+
+from xcube_cmems.cmems import Cmems
+
 from .sample_data import get_all_dataset_results
 
 

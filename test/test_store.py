@@ -21,16 +21,19 @@
 
 import os
 import unittest
+
 import numpy as np
 import xarray as xr
 import xcube.core.store.descriptor as xcube_des
 from dotenv import load_dotenv
+from xcube.util.jsonschema import JsonObjectSchema
+from mock import patch
+
 from xcube_cmems.cmems import Cmems
 from xcube_cmems.store import CmemsDatasetOpener
 from xcube_cmems.store import CmemsDataOpener
 from xcube_cmems.store import CmemsDataStore
-from xcube.util.jsonschema import JsonObjectSchema
-from mock import patch
+
 from .sample_data import create_cmems_dataset
 from .sample_data import get_all_dataset_results
 
