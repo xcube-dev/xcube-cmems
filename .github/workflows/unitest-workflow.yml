@@ -35,8 +35,6 @@ jobs:
           mamba env update --name xcube-cmems --file environment.yml
           python setup.py develop
           
-        # install all xcube-cmems dependencies *except* xcube
-        # (already manually installed), then install xcube-cmems itself with setup.py.
           cd /home/runner/work/xcube-cmems/xcube-cmems
           grep -v "^  - xcube" environment.yml > env_no_xcube.yml
           mamba env update --name xcube-cmems --file env_no_xcube.yml
