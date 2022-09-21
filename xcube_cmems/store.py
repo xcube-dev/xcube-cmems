@@ -191,8 +191,9 @@ class CmemsDataOpener(DataOpener):
             chunks = (chunks,) if isinstance(chunks, int) else \
                 tuple(chunks) if chunks is not None else None
             fill_value = attrs.pop(
-                "_FillValue", 
-                float('NaN') if np.issubdtype(pyd_var.dtype, np.floating) else None
+                "_FillValue",
+                float('NaN') if np.issubdtype(pyd_var.dtype, np.floating)
+                else None
             )
             array = GenericZarrStore.Array(
                 name=name,
@@ -229,7 +230,7 @@ class CmemsDataOpener(DataOpener):
         assert_not_none(data_id)
         cmems_schema = self.get_open_data_params_schema(data_id)
         cmems_schema.validate_instance(open_params)
-        open_params, other_kwargs = cmems_schema.\
+        open_params, other_kwargs = cmems_schema. \
             process_kwargs_subset(open_params, ('variable_names', 'time_range',
                                                 'bbox'))
         ds = self.open_dataset()
