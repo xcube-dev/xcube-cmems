@@ -20,9 +20,9 @@
 # SOFTWARE.
 
 from typing import Any, List, Tuple, Container, Union, Iterator, Dict
+import logging
 
 import zarr
-import logging
 import xarray as xr
 import numpy as np
 import pandas as pd
