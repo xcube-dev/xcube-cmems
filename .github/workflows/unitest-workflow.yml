@@ -42,6 +42,7 @@ jobs:
           conda list -n xcube-cmems
 
       - name: Lint with flake8
+        shell: bash -l {0}
         run: |
           conda activate xcube-cmems
           mamba install flake8
