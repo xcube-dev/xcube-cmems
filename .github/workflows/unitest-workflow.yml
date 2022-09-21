@@ -1,0 +1,57 @@
+name: Unittest
+
+on:
+  push:
+  release:
+    types: [published]
+env:
+  CMEMS_USER: ${{ secrets.CMEMS_USER }}
+  CMEMS_PASSWORD: ${{ secrets.CMEMS_PASSWORD }}
+
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+    env:
+      NUMBA_DISABLE_JIT: 1
+    steps:
+      - name: checkout xcube-cmems
+        uses: actions/checkout@v3
+
+      - name: setup conda env
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          mamba-version: "*"
+          channels: conda-forge
+          activate-environment: xcube-cmems
+
+      - name: Install xcube and xcube-cmems
+        shell: bash -l {0}
+        run: |
+          git clone https://github.com/dcs4cop/xcube $HOME/runner/work/xcube
+          cd $HOME
+          cd $HOME/runner/work/xcube
+          
+          conda activate xcube-cmems
+          mamba env update --name xcube-cmems --file environment.yml
+          python setup.py develop
+          
+          cd /home/runner/work/xcube-cmems/xcube-cmems
+          grep -v "^  - xcube" environment.yml > env_no_xcube.yml
+          mamba env update --name xcube-cmems --file env_no_xcube.yml
+          python setup.py develop
+          conda list -n xcube-cmems
+
+      - name: Lint with flake8
+        shell: bash -l {0}
+        run: |
+          conda activate xcube-cmems
+          mamba install flake8
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Run unit tests
+        shell: bash -l {0}
+        run: |  
+          pytest --cov=./ --cov-report=xml
