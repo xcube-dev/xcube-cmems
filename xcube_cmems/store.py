@@ -166,6 +166,7 @@ class CmemsDataOpener(DataOpener):
         if max_cache_size:
             zarr_store = zarr.LRUStoreCache(zarr_store, max_size=max_cache_size)
         dataset = xr.open_zarr(zarr_store)
+        # Allow for accessing original zarr_store later (new in xcube 0.12.1)
         dataset.zarr_store.set(zarr_store)
         return dataset
 
