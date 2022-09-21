@@ -19,18 +19,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from typing import Any, List, Tuple, Container, Union, Iterator, Dict
+
+import zarr
+import logging
 import xarray as xr
 import numpy as np
 import pandas as pd
-import zarr
-import logging
-from typing import Any
-from typing import List
-from typing import Tuple
-from typing import Container
-from typing import Union
-from typing import Iterator
-from typing import Dict
 from pydap.client import open_url
 from pydap.model import DatasetType
 from xarray.core.dataset import DataVariables
@@ -39,7 +34,6 @@ from xcube.core.store import DataType
 from xcube.core.store import DataStoreError
 from xcube.core.store import DATASET_TYPE
 from xcube.core.store import DataDescriptor
-from .cmems import Cmems
 from xcube.core.store import DataOpener
 from xcube.core.store import DataStore
 from xcube.core.store import DataTypeLike
@@ -52,7 +46,9 @@ from xcube.util.jsonschema import JsonNumberSchema
 from xcube.util.jsonschema import JsonArraySchema
 from xcube.util.jsonschema import JsonStringSchema
 from xcube.util.jsonschema import JsonDateSchema
-from xcube_cmems.constants import DATASET_OPENER_ID
+
+from .constants import DATASET_OPENER_ID
+from .cmems import Cmems
 
 _LOG = logging.getLogger('xcube')
 

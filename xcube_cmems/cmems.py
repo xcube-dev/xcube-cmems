@@ -19,20 +19,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from typing import List, Dict, Any
 import os
 import logging
+
 from urllib.parse import urlsplit
 from pydap.cas.get_cookies import setup_session
-from typing import List
-from typing import Dict
-from typing import Any
+from owslib.fes import SortBy
+from owslib.fes import SortProperty
+from owslib.csw import CatalogueServiceWeb
+
 from .constants import CAS_URL
 from .constants import ODAP_SERVER
 from .constants import DATABASE
 from .constants import CSW_URL
-from owslib.fes import SortBy
-from owslib.fes import SortProperty
-from owslib.csw import CatalogueServiceWeb
 
 _LOG = logging.getLogger('xcube')
 
