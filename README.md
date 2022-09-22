@@ -81,8 +81,7 @@ release.
 To create a test coverage report, you can use
 
 ```
-coverage run --include='xcube_cmems/**' --module pytest
-coverage html
+pytest --cov xcube_cmems --cov-report html
 ```
 
 This will write a coverage report to `htmlcov/index.html`.
