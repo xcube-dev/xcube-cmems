@@ -67,7 +67,7 @@ then installs xcube-cmems into this environment from the repository.
 
 # Testing
 
-You can run the unit tests for xcube-cmems by executing
+You can run the unit tests for `xcube-cmems` by executing
 
 ```
 $ pytest
