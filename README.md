@@ -62,7 +62,7 @@ $ conda activate xcube-cmems-environment
 $ git clone https://github.com/dcs4cop/xcube-cmems.git
 $ python -m pip install --no-deps --editable xcube-cmems/
 ```
-This installs all the dependencies of xcube-cmems into a fresh conda environment,
+This installs all the dependencies of `xcube-cmems` into a fresh conda environment,
 then installs xcube-cmems into this environment from the repository.
 
 # Testing
