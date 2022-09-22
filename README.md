@@ -75,7 +75,7 @@ $ pytest
 
 in the `xcube-cmems` repository. Note that, in order to successfully run the
 tests using the current repository version of `xcube-cmems`, you may also need to
-install the repository version of xcube rather than its latest conda-forge
+install the repository source version of `xcube` rather than its latest conda-forge
 release.
 
 To create a test coverage report, you can use
