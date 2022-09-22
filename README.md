@@ -89,7 +89,7 @@ This will write a coverage report to `htmlcov/index.html`.
 
 ## Use
 
-Jupyter notebooks demonstrating the use of the xcube-cmems plugin can be found
+Jupyter notebooks demonstrating the use of the  `xcube-cmems` plugin can be found
 in the `examples/notebooks/` subdirectory of the repository.
 
 ## Releasing
