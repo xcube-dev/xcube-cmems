@@ -23,7 +23,7 @@ alternative to conda.
 
 #### Installation into a new environment with conda
 
-xcube-cmems and all necessary dependencies (including xcube itself) are available
+`xcube-cmems` and all necessary dependencies (including xcube itself) are available
 on [conda-forge](https://conda-forge.org/), and can be installed using the
 [conda package manager](https://docs.conda.io/projects/conda/en/latest/).
 The conda package manager itself can be obtained in the [miniconda
