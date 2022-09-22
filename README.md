@@ -39,7 +39,7 @@ The name of the environment may be freely chosen.
 #### Installation into an existing environment with conda
 
 This method assumes that you have an existing conda environment, and you want
-to install xcube-cmems into it.
+to install `xcube-cmems` into it.
 
 xcube-cmems can also be installed into an existing conda environment.
 With the existing environment activated, execute this command:
