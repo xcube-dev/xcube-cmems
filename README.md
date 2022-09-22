@@ -8,7 +8,7 @@ data cubes from the CMEMS API.
 
 ### Configuring access to the CMEMS API
 
-In order to access the CMEMS API via xcube_cmems plugin, you need to create a 
+In order to access the CMEMS API via the `xcube-cmems` plugin, you need to create a 
 [cmems account](https://resources.marine.copernicus.eu/registration-form)
 
 ### Installing the xcube-cmems plugin
