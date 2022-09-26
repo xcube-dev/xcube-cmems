@@ -129,7 +129,6 @@ class CmemsDataOpener(DataOpener):
                                        data_vars=var_descriptors,
                                        attrs=attrs,
                                        bbox=gm.xy_bbox,
-                                       # spatial_res=gm.xy_res,
                                        time_range=temporal_coverage,
                                        time_period=temporal_resolution)
         data_schema = self._get_open_data_params_schema(descriptor)
