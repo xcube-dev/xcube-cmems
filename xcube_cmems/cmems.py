@@ -42,7 +42,6 @@ class Cmems:
         Represents the CMEMS opendap API
         :param cmems_user: CMEMS UserID
         :param cmems_user_password: CMEMS User Password
-        :param dataset_id: opendap dataset id
         :param cas_url: CMEMS cas url
         :param csw_url: CMEMS csw url
         :param databases: databases available - nrt (near real time)
@@ -54,7 +53,6 @@ class Cmems:
     def __init__(self,
                  cmems_user: str,
                  cmems_user_password: str,
-                 dataset_id: str,
                  cas_url: str = CAS_URL,
                  csw_url: str = CSW_URL,
                  databases: List = DATABASE,
@@ -62,7 +60,6 @@ class Cmems:
                  ):
         self.valid_opendap_url = None
         self._csw_url = csw_url
-        self.dataset_id = dataset_id
         self.databases = databases
         self.odap_server = server
         self.metadata = {}
@@ -74,7 +71,7 @@ class Cmems:
                                  self.session.cookies.get_dict()['CASTGC']
                                  )
 
-    def get_opendap_urls(self) -> List[str]:
+    def get_opendap_urls(self, data_id) -> List[str]:
         """
         Constructs opendap urls given the dataset id
         :return: List of opendap urls
@@ -82,7 +79,7 @@ class Cmems:
         urls = []
         for i in range(len(self.databases)):
             urls.append(os.path.join("https://" + self.databases[i] + "." +
-                                     self.odap_server + self.dataset_id))
+                                     self.odap_server + data_id))
 
         return urls
 
