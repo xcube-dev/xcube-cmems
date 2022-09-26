@@ -22,7 +22,6 @@
 import os
 import unittest
 
-import numpy as np
 import xarray as xr
 import xcube.core.store.descriptor as xcube_des
 from dotenv import load_dotenv
@@ -76,9 +75,9 @@ class CmemsDataOpenerTest(unittest.TestCase):
         self.assertEqual(3, data_des.data_vars['VTPK'].ndim)
         self.assertEqual(('time', 'lat', 'lon'),
                          data_des.data_vars['VTPK'].dims)
-        self.assertEqual(np.float64,
+        self.assertEqual('float64',
                          data_des.data_vars['VTPK'].dtype)
-        self.assertEqual('epsg:4326', data_des.crs)
+        self.assertEqual('WGS 84', data_des.crs)
         self.assertEqual('1D', data_des.time_period)
 
 
@@ -121,9 +120,9 @@ class CmemsDataStoreTest(unittest.TestCase):
         self.assertEqual(3, data_des.data_vars['VTPK'].ndim)
         self.assertEqual(('time', 'lat', 'lon'),
                          data_des.data_vars['VTPK'].dims)
-        self.assertEqual(np.float64,
+        self.assertEqual('float64',
                          data_des.data_vars['VTPK'].dtype)
-        self.assertEqual('epsg:4326', data_des.crs)
+        self.assertEqual('WGS 84', data_des.crs)
         self.assertEqual('1D', data_des.time_period)
 
     @patch.object(CmemsDataOpener, "open_dataset")
