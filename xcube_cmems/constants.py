@@ -19,6 +19,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import os
+
+DEFAULT_CMEMS_USER = os.environ.get('CMEMS_USER')
+DEFAULT_CMEMS_USER_PASSWORD = os.environ.get('CMEMS_PASSWORD')
 CAS_URL = 'https://cmems-cas.cls.fr/cas/login'
 ODAP_SERVER = "cmems-du.eu/thredds/dodsC/"
 DATABASE = ['nrt', 'my']
