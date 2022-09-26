@@ -46,8 +46,7 @@ class CmemsDataOpenerTest(unittest.TestCase):
         cmems_user = os.getenv("CMEMS_USER")
         cmems_user_password = os.getenv("CMEMS_PASSWORD")
         cmems_params = {'cmems_user': cmems_user,
-                        'cmems_user_password': cmems_user_password,
-                        'dataset_id': self.dataset_id
+                        'cmems_user_password': cmems_user_password
                         }
         self.opener = CmemsDatasetOpener(**cmems_params)
 
@@ -91,8 +90,7 @@ class CmemsDataStoreTest(unittest.TestCase):
         cmems_user = os.getenv("CMEMS_USER")
         cmems_user_password = os.getenv("CMEMS_PASSWORD")
         cmems_params = {'cmems_user': cmems_user,
-                        'cmems_user_password': cmems_user_password,
-                        'dataset_id': self.dataset_id
+                        'cmems_user_password': cmems_user_password
                         }
         self.datastore = CmemsDataStore(**cmems_params)
 
