@@ -34,9 +34,7 @@ class CmemsTest(unittest.TestCase):
 
     @classmethod
     def _create_cmems_instance(cls):
-        # load the environment variables
-        load_dotenv()
-        cmems = Cmems(os.getenv("CMEMS_USER"), os.getenv("CMEMS_PASSWORD"))
+        cmems = Cmems()
         return cmems
 
     def test_get_opendap_urls(self):
