@@ -21,7 +21,6 @@
 
 from typing import Any, List, Tuple, Container, Union, Iterator, Dict
 import logging
-import os
 
 import pyproj
 import zarr
@@ -54,11 +53,11 @@ from .constants import CAS_URL
 from .constants import CSW_URL
 from .constants import DATABASE
 from .constants import ODAP_SERVER
+from .default_env_vars import DEFAULT_CMEMS_USER
+from .default_env_vars import DEFAULT_CMEMS_USER_PASSWORD
 from .cmems import Cmems
 
 _LOG = logging.getLogger('xcube')
-DEFAULT_CMEMS_USER = os.environ.get('CMEMS_USER')
-DEFAULT_CMEMS_USER_PASSWORD = os.environ.get('CMEMS_PASSWORD')
 
 
 class CmemsDataOpener(DataOpener):
@@ -280,9 +279,9 @@ class CmemsDataOpener(DataOpener):
 
 class CmemsDatasetOpener(CmemsDataOpener):
 
-    def __init__(self, **cmems_params):
+    def __init__(self):
         super().__init__(
-            Cmems(**cmems_params),
+            Cmems(),
             DATASET_OPENER_ID,
             DATASET_TYPE,
         )
@@ -294,19 +293,8 @@ class CmemsDataStore(DataStore):
        interface.
        """
 
-    def __init__(self, **store_params):
-        cmems_schema = self.get_data_store_params_schema()
-        cmems_schema.validate_instance(store_params)
-        cmems_kwargs, store_params = cmems_schema.process_kwargs_subset(
-            store_params, (
-                'cmems_user',
-                'cmems_user_password',
-                'cas_url',
-                'csw_url',
-                'databases',
-                'server',
-            ))
-        self._dataset_opener = CmemsDatasetOpener(**cmems_kwargs)
+    def __init__(self):
+        self._dataset_opener = CmemsDatasetOpener()
 
     @classmethod
     def get_data_store_params_schema(cls) -> JsonObjectSchema:

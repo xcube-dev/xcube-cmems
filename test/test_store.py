@@ -19,12 +19,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import os
 import unittest
 
 import xarray as xr
 import xcube.core.store.descriptor as xcube_des
-from dotenv import load_dotenv
 from xcube.util.jsonschema import JsonObjectSchema
 from mock import patch
 
@@ -41,13 +39,7 @@ class CmemsDataOpenerTest(unittest.TestCase):
 
     def setUp(self) -> None:
         self.dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
-        load_dotenv()
-        cmems_user = os.getenv("CMEMS_USER")
-        cmems_user_password = os.getenv("CMEMS_PASSWORD")
-        cmems_params = {'cmems_user': cmems_user,
-                        'cmems_user_password': cmems_user_password
-                        }
-        self.opener = CmemsDatasetOpener(**cmems_params)
+        self.opener = CmemsDatasetOpener()
 
     @patch.object(CmemsDataOpener, "open_dataset")
     def test_open_data_with_no_cube_params(self, mock_open_dataset):
@@ -85,13 +77,7 @@ class CmemsDataStoreTest(unittest.TestCase):
 
     def setUp(self) -> None:
         self.dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
-        load_dotenv()
-        cmems_user = os.getenv("CMEMS_USER")
-        cmems_user_password = os.getenv("CMEMS_PASSWORD")
-        cmems_params = {'cmems_user': cmems_user,
-                        'cmems_user_password': cmems_user_password
-                        }
-        self.datastore = CmemsDataStore(**cmems_params)
+        self.datastore = CmemsDataStore()
 
     @patch.object(Cmems, "get_all_dataset_ids")
     def test_get_data_ids(self, mock_get_all_dataset_ids):
