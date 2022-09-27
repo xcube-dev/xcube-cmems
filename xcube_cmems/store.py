@@ -279,9 +279,9 @@ class CmemsDataOpener(DataOpener):
 
 class CmemsDatasetOpener(CmemsDataOpener):
 
-    def __init__(self):
+    def __init__(self, **cmems_params):
         super().__init__(
-            Cmems(),
+            Cmems(**cmems_params),
             DATASET_OPENER_ID,
             DATASET_TYPE,
         )
@@ -293,8 +293,20 @@ class CmemsDataStore(DataStore):
        interface.
        """
 
-    def __init__(self):
-        self._dataset_opener = CmemsDatasetOpener()
+    def __init__(self, **store_params):
+        cmems_schema = self.get_data_store_params_schema()
+        cmems_schema.validate_instance(store_params)
+        cmems_kwargs, store_params = cmems_schema.process_kwargs_subset(
+            store_params, (
+                'cmems_user',
+                'cmems_user_password',
+                'dataset_id',
+                'cas_url',
+                'csw_url',
+                'databases',
+                'server',
+            ))
+        self._dataset_opener = CmemsDatasetOpener(**cmems_kwargs)
 
     @classmethod
     def get_data_store_params_schema(cls) -> JsonObjectSchema:
