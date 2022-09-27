@@ -21,6 +21,7 @@
 
 from typing import Any, List, Tuple, Container, Union, Iterator, Dict
 import logging
+import os
 
 import pyproj
 import zarr
@@ -53,11 +54,11 @@ from .constants import CAS_URL
 from .constants import CSW_URL
 from .constants import DATABASE
 from .constants import ODAP_SERVER
-from .default_env_vars import DEFAULT_CMEMS_USER
-from .default_env_vars import DEFAULT_CMEMS_USER_PASSWORD
 from .cmems import Cmems
 
 _LOG = logging.getLogger('xcube')
+DEFAULT_CMEMS_USER = os.environ.get('CMEMS_USER')
+DEFAULT_CMEMS_USER_PASSWORD = os.environ.get('CMEMS_PASSWORD')
 
 
 class CmemsDataOpener(DataOpener):
