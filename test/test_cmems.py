@@ -20,9 +20,7 @@
 # SOFTWARE.
 
 import unittest
-import os
 
-from dotenv import load_dotenv
 from mock import patch
 
 from xcube_cmems.cmems import Cmems
@@ -32,35 +30,24 @@ from .sample_data import get_all_dataset_results
 
 class CmemsTest(unittest.TestCase):
 
-    @classmethod
-    def _create_cmems_instance(cls, dataset_id):
-        # load the environment variables
-        load_dotenv()
-        cmems = Cmems(os.getenv("CMEMS_USER"), os.getenv("CMEMS_PASSWORD"),
-                      dataset_id)
-        return cmems
-
     def test_get_opendap_urls(self):
+        cmems = Cmems()
         dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
-        cmems = self._create_cmems_instance(dataset_id)
-        self.assertEqual(['https://nrt.cmems-du.eu/thredds/dodsC/dataset-bal'
-                          '-analysis-forecast-wav-hourly',
-                          'https://my.cmems-du.eu/thredds/dodsC/dataset-bal'
-                          '-analysis-forecast-wav-hourly'],
-                         cmems.get_opendap_urls()
-                         )
+        urls = cmems.get_opendap_urls(dataset_id)
+        self.assertEqual('https://nrt.cmems-du.eu/thredds/dodsC/dataset-bal'
+                         '-analysis-forecast-wav-hourly', urls[0])
+        self.assertEqual('https://my.cmems-du.eu/thredds/dodsC/dataset-bal'
+                         '-analysis-forecast-wav-hourly', urls[1])
 
     @patch.object(Cmems, "get_all_dataset_ids")
     def test_get_data_ids(self, mock_get_all_dataset_ids):
         mock_get_all_dataset_ids.return_value = get_all_dataset_results()
-        dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
-        cmems = self._create_cmems_instance(dataset_id)
+        cmems = Cmems()
         self.assertEqual(520, len(cmems.get_all_dataset_ids()))
 
     @patch.object(Cmems, "dataset_names")
     def test_get_dataset_names(self, mock_dataset_names):
-        cmems = self._create_cmems_instance("dataset-bal-analysis-forecast-"
-                                            "wav-hourly")
+        cmems = Cmems()
         dataset_dict = get_all_dataset_results()
         mock_dataset_names.return_value = dataset_dict.keys()
         self.assertEqual(520, len(cmems.dataset_names()))

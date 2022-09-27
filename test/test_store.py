@@ -19,13 +19,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import os
 import unittest
 
-import numpy as np
 import xarray as xr
 import xcube.core.store.descriptor as xcube_des
-from dotenv import load_dotenv
 from xcube.util.jsonschema import JsonObjectSchema
 from mock import patch
 
@@ -42,14 +39,7 @@ class CmemsDataOpenerTest(unittest.TestCase):
 
     def setUp(self) -> None:
         self.dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
-        load_dotenv()
-        cmems_user = os.getenv("CMEMS_USER")
-        cmems_user_password = os.getenv("CMEMS_PASSWORD")
-        cmems_params = {'cmems_user': cmems_user,
-                        'cmems_user_password': cmems_user_password,
-                        'dataset_id': self.dataset_id
-                        }
-        self.opener = CmemsDatasetOpener(**cmems_params)
+        self.opener = CmemsDatasetOpener()
 
     @patch.object(CmemsDataOpener, "open_dataset")
     def test_open_data_with_no_cube_params(self, mock_open_dataset):
@@ -77,9 +67,9 @@ class CmemsDataOpenerTest(unittest.TestCase):
         self.assertEqual(3, data_des.data_vars['VTPK'].ndim)
         self.assertEqual(('time', 'lat', 'lon'),
                          data_des.data_vars['VTPK'].dims)
-        self.assertEqual(np.float64,
+        self.assertEqual('float64',
                          data_des.data_vars['VTPK'].dtype)
-        self.assertEqual('epsg:4326', data_des.crs)
+        self.assertEqual('WGS 84', data_des.crs)
         self.assertEqual('1D', data_des.time_period)
 
 
@@ -87,14 +77,7 @@ class CmemsDataStoreTest(unittest.TestCase):
 
     def setUp(self) -> None:
         self.dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
-        load_dotenv()
-        cmems_user = os.getenv("CMEMS_USER")
-        cmems_user_password = os.getenv("CMEMS_PASSWORD")
-        cmems_params = {'cmems_user': cmems_user,
-                        'cmems_user_password': cmems_user_password,
-                        'dataset_id': self.dataset_id
-                        }
-        self.datastore = CmemsDataStore(**cmems_params)
+        self.datastore = CmemsDataStore()
 
     @patch.object(Cmems, "get_all_dataset_ids")
     def test_get_data_ids(self, mock_get_all_dataset_ids):
@@ -123,9 +106,9 @@ class CmemsDataStoreTest(unittest.TestCase):
         self.assertEqual(3, data_des.data_vars['VTPK'].ndim)
         self.assertEqual(('time', 'lat', 'lon'),
                          data_des.data_vars['VTPK'].dims)
-        self.assertEqual(np.float64,
+        self.assertEqual('float64',
                          data_des.data_vars['VTPK'].dtype)
-        self.assertEqual('epsg:4326', data_des.crs)
+        self.assertEqual('WGS 84', data_des.crs)
         self.assertEqual('1D', data_des.time_period)
 
     @patch.object(CmemsDataOpener, "open_dataset")

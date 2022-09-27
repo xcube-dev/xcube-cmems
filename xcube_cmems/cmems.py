@@ -33,6 +33,8 @@ from .constants import CAS_URL
 from .constants import ODAP_SERVER
 from .constants import DATABASE
 from .constants import CSW_URL
+from .default_env_vars import DEFAULT_CMEMS_USER
+from .default_env_vars import DEFAULT_CMEMS_USER_PASSWORD
 
 _LOG = logging.getLogger('xcube')
 
@@ -42,7 +44,6 @@ class Cmems:
         Represents the CMEMS opendap API
         :param cmems_user: CMEMS UserID
         :param cmems_user_password: CMEMS User Password
-        :param dataset_id: opendap dataset id
         :param cas_url: CMEMS cas url
         :param csw_url: CMEMS csw url
         :param databases: databases available - nrt (near real time)
@@ -52,29 +53,29 @@ class Cmems:
     """
 
     def __init__(self,
-                 cmems_user: str,
-                 cmems_user_password: str,
-                 dataset_id: str,
+                 cmems_user: str = DEFAULT_CMEMS_USER,
+                 cmems_user_password: str = DEFAULT_CMEMS_USER_PASSWORD,
                  cas_url: str = CAS_URL,
                  csw_url: str = CSW_URL,
                  databases: List = DATABASE,
                  server: str = ODAP_SERVER
                  ):
+        self.cmems_user = cmems_user
+        self.cmems_user_password = cmems_user_password
         self.valid_opendap_url = None
         self._csw_url = csw_url
-        self.dataset_id = dataset_id
         self.databases = databases
         self.odap_server = server
         self.metadata = {}
         self.opendap_dataset_ids = {}
 
-        self.session = setup_session(cas_url, cmems_user,
-                                     cmems_user_password)
+        self.session = setup_session(cas_url, self.cmems_user,
+                                     self.cmems_user_password)
         self.session.cookies.set("CASTGC",
                                  self.session.cookies.get_dict()['CASTGC']
                                  )
 
-    def get_opendap_urls(self) -> List[str]:
+    def get_opendap_urls(self, data_id) -> List[str]:
         """
         Constructs opendap urls given the dataset id
         :return: List of opendap urls
@@ -82,7 +83,7 @@ class Cmems:
         urls = []
         for i in range(len(self.databases)):
             urls.append(os.path.join("https://" + self.databases[i] + "." +
-                                     self.odap_server + self.dataset_id))
+                                     self.odap_server + data_id))
 
         return urls
 
