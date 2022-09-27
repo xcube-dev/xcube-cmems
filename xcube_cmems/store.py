@@ -300,7 +300,6 @@ class CmemsDataStore(DataStore):
             store_params, (
                 'cmems_user',
                 'cmems_user_password',
-                'dataset_id',
                 'cas_url',
                 'csw_url',
                 'databases',
