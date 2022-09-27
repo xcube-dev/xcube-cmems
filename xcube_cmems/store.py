@@ -53,8 +53,8 @@ from .constants import CAS_URL
 from .constants import CSW_URL
 from .constants import DATABASE
 from .constants import ODAP_SERVER
-from .constants import DEFAULT_CMEMS_USER
-from .constants import DEFAULT_CMEMS_USER_PASSWORD
+from .default_env_vars import DEFAULT_CMEMS_USER
+from .default_env_vars import DEFAULT_CMEMS_USER_PASSWORD
 from .cmems import Cmems
 
 _LOG = logging.getLogger('xcube')
@@ -254,17 +254,20 @@ class CmemsDataOpener(DataOpener):
             time_range=JsonDateSchema.new_range(min_date, max_date)
         )
         if dsd:
-            if pyproj.CRS.from_string(dsd.crs).is_geographic:
-                min_lon = dsd.bbox[0] if dsd and dsd.bbox else -180
-                min_lat = dsd.bbox[1] if dsd and dsd.bbox else -90
-                max_lon = dsd.bbox[2] if dsd and dsd.bbox else 180
-                max_lat = dsd.bbox[3] if dsd and dsd.bbox else 90
-                bbox = JsonArraySchema(items=(
-                    JsonNumberSchema(minimum=min_lon, maximum=max_lon),
-                    JsonNumberSchema(minimum=min_lat, maximum=max_lat),
-                    JsonNumberSchema(minimum=min_lon, maximum=max_lon),
-                    JsonNumberSchema(minimum=min_lat, maximum=max_lat)))
-                dataset_params['bbox'] = bbox
+            try:
+                if pyproj.CRS.from_string(dsd.crs).is_geographic:
+                    min_lon = dsd.bbox[0] if dsd and dsd.bbox else -180
+                    min_lat = dsd.bbox[1] if dsd and dsd.bbox else -90
+                    max_lon = dsd.bbox[2] if dsd and dsd.bbox else 180
+                    max_lat = dsd.bbox[3] if dsd and dsd.bbox else 90
+                    bbox = JsonArraySchema(items=(
+                        JsonNumberSchema(minimum=min_lon, maximum=max_lon),
+                        JsonNumberSchema(minimum=min_lat, maximum=max_lat),
+                        JsonNumberSchema(minimum=min_lon, maximum=max_lon),
+                        JsonNumberSchema(minimum=min_lat, maximum=max_lat)))
+                    dataset_params['bbox'] = bbox
+            except pyproj.exceptions.CRSError:
+                pass
         cmems_schema = JsonObjectSchema(
             properties=dict(**dataset_params),
             required=[
@@ -297,7 +300,6 @@ class CmemsDataStore(DataStore):
             store_params, (
                 'cmems_user',
                 'cmems_user_password',
-                'dataset_id',
                 'cas_url',
                 'csw_url',
                 'databases',
