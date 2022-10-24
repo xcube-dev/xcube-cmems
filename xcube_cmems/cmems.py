@@ -71,9 +71,11 @@ class Cmems:
 
         self.session = setup_session(cas_url, self.cmems_user,
                                      self.cmems_user_password)
-        self.session.cookies.set("CASTGC",
-                                 self.session.cookies.get_dict()['CASTGC']
-                                 )
+
+        cast_gc = self.session.cookies.get_dict().get('CASTGC')
+        if cast_gc:
+            # Check, why is this needed at all?
+            self.session.cookies.set("CASTGC", cast_gc)
 
     def get_opendap_urls(self, data_id) -> List[str]:
         """
