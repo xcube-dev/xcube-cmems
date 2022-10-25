@@ -33,8 +33,6 @@ from .constants import CAS_URL
 from .constants import ODAP_SERVER
 from .constants import DATABASE
 from .constants import CSW_URL
-from .default_env_vars import DEFAULT_CMEMS_USERNAME
-from .default_env_vars import DEFAULT_CMEMS_PASSWORD
 
 _LOG = logging.getLogger('xcube')
 
@@ -53,8 +51,8 @@ class Cmems:
     """
 
     def __init__(self,
-                 cmems_username: str = DEFAULT_CMEMS_USERNAME,
-                 cmems_password: str = DEFAULT_CMEMS_PASSWORD,
+                 cmems_username: str = os.getenv('CMEMS_USERNAME'),
+                 cmems_password: str = os.getenv('CMEMS_PASSWORD'),
                  cas_url: str = CAS_URL,
                  csw_url: str = CSW_URL,
                  databases: List = DATABASE,
@@ -68,6 +66,11 @@ class Cmems:
         self.odap_server = server
         self.metadata = {}
         self.opendap_dataset_ids = {}
+
+        if not self.cmems_username or not self.cmems_password:
+            raise Exception('CmemsDataStore needs cmems credentials in env vars'
+                            ' CMEMS_USERNAME and CMEMS_PASSWORD or to be '
+                            'provided as store params')
 
         self.session = setup_session(cas_url, self.cmems_username,
                                      self.cmems_password)
@@ -90,7 +93,7 @@ class Cmems:
         return urls
 
     @staticmethod
-    def get_csw_records(csw, pagesize: int = 10, max_records: int = 300)\
+    def get_csw_records(csw, pagesize: int = 10, max_records: int = 300) \
             -> Dict[Any, Any]:
         """
         Iterate max_records/pagesize times until the requested value in
