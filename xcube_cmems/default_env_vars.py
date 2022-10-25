@@ -24,5 +24,5 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-DEFAULT_CMEMS_USER = os.getenv('CMEMS_USER')
-DEFAULT_CMEMS_USER_PASSWORD = os.getenv('CMEMS_PASSWORD')
+DEFAULT_CMEMS_USERNAME = os.getenv('CMEMS_USERNAME')
+DEFAULT_CMEMS_PASSWORD = os.getenv('CMEMS_PASSWORD')
