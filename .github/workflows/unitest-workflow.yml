@@ -5,7 +5,7 @@ on:
   release:
     types: [published]
 env:
-  CMEMS_USER: ${{ secrets.CMEMS_USER }}
+  CMEMS_USERNAME: ${{ secrets.CMEMS_USER }}
   CMEMS_PASSWORD: ${{ secrets.CMEMS_PASSWORD }}
 
 jobs:
