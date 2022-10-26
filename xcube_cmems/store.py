@@ -53,8 +53,6 @@ from .constants import CAS_URL
 from .constants import CSW_URL
 from .constants import DATABASE
 from .constants import ODAP_SERVER
-from .default_env_vars import DEFAULT_CMEMS_USER
-from .default_env_vars import DEFAULT_CMEMS_USER_PASSWORD
 from .cmems import Cmems
 
 _LOG = logging.getLogger('xcube')
@@ -298,8 +296,8 @@ class CmemsDataStore(DataStore):
         cmems_schema.validate_instance(store_params)
         cmems_kwargs, store_params = cmems_schema.process_kwargs_subset(
             store_params, (
-                'cmems_user',
-                'cmems_user_password',
+                'cmems_username',
+                'cmems_password',
                 'cas_url',
                 'csw_url',
                 'databases',
@@ -310,11 +308,12 @@ class CmemsDataStore(DataStore):
     @classmethod
     def get_data_store_params_schema(cls) -> JsonObjectSchema:
         cmems_params = dict(
-            cmems_user=JsonStringSchema(
-                title='CMEMS User',
-                description='Preferably set by environment variable CMEMS_USER'
+            cmems_username=JsonStringSchema(
+                title='CMEMS Username',
+                description='Preferably set by environment variable '
+                            'CMEMS_USERNAME '
             ),
-            cmems_user_password=JsonStringSchema(
+            cmems_password=JsonStringSchema(
                 title='CMEMS User Password',
                 description='Preferably set by environment '
                             'variable CMEMS_PASSWORD'
@@ -324,16 +323,9 @@ class CmemsDataStore(DataStore):
             databases=JsonStringSchema(default=DATABASE),
             server=JsonStringSchema(default=ODAP_SERVER),
         )
-        required = None
-        if not DEFAULT_CMEMS_USER or not DEFAULT_CMEMS_USER_PASSWORD:
-            required = []
-            if DEFAULT_CMEMS_USER is None:
-                required.append('cmems_user')
-            if DEFAULT_CMEMS_USER_PASSWORD is None:
-                required.append('cmems_user_password')
         return JsonObjectSchema(
             properties=dict(**cmems_params),
-            required=required,
+            required=None,
             additional_properties=False
         )
 

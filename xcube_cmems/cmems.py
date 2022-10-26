@@ -33,8 +33,6 @@ from .constants import CAS_URL
 from .constants import ODAP_SERVER
 from .constants import DATABASE
 from .constants import CSW_URL
-from .default_env_vars import DEFAULT_CMEMS_USER
-from .default_env_vars import DEFAULT_CMEMS_USER_PASSWORD
 
 _LOG = logging.getLogger('xcube')
 
@@ -42,8 +40,8 @@ _LOG = logging.getLogger('xcube')
 class Cmems:
     """
         Represents the CMEMS opendap API
-        :param cmems_user: CMEMS UserID
-        :param cmems_user_password: CMEMS User Password
+        :param cmems_username: CMEMS UserID
+        :param cmems_password: CMEMS User Password
         :param cas_url: CMEMS cas url
         :param csw_url: CMEMS csw url
         :param databases: databases available - nrt (near real time)
@@ -53,15 +51,15 @@ class Cmems:
     """
 
     def __init__(self,
-                 cmems_user: str = DEFAULT_CMEMS_USER,
-                 cmems_user_password: str = DEFAULT_CMEMS_USER_PASSWORD,
+                 cmems_username: str = os.getenv('CMEMS_USERNAME'),
+                 cmems_password: str = os.getenv('CMEMS_PASSWORD'),
                  cas_url: str = CAS_URL,
                  csw_url: str = CSW_URL,
                  databases: List = DATABASE,
                  server: str = ODAP_SERVER
                  ):
-        self.cmems_user = cmems_user
-        self.cmems_user_password = cmems_user_password
+        self.cmems_username = cmems_username
+        self.cmems_password = cmems_password
         self.valid_opendap_url = None
         self._csw_url = csw_url
         self.databases = databases
@@ -69,8 +67,13 @@ class Cmems:
         self.metadata = {}
         self.opendap_dataset_ids = {}
 
-        self.session = setup_session(cas_url, self.cmems_user,
-                                     self.cmems_user_password)
+        if not self.cmems_username or not self.cmems_password:
+            raise Exception('CmemsDataStore needs cmems credentials in env vars'
+                            ' CMEMS_USERNAME and CMEMS_PASSWORD or to be '
+                            'provided as store params')
+
+        self.session = setup_session(cas_url, self.cmems_username,
+                                     self.cmems_password)
 
         cast_gc = self.session.cookies.get_dict().get('CASTGC')
         if cast_gc:
@@ -90,7 +93,7 @@ class Cmems:
         return urls
 
     @staticmethod
-    def get_csw_records(csw, pagesize: int = 10, max_records: int = 300)\
+    def get_csw_records(csw, pagesize: int = 10, max_records: int = 300) \
             -> Dict[Any, Any]:
         """
         Iterate max_records/pagesize times until the requested value in
