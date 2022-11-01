@@ -18,7 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
+import asyncio
 from typing import List, Dict, Any
 import os
 import logging
@@ -92,44 +92,14 @@ class Cmems:
 
         return urls
 
-    @staticmethod
-    def get_csw_records(csw, pagesize: int = 10, max_records: int = 300) \
-            -> Dict[Any, Any]:
-        """
-        Iterate max_records/pagesize times until the requested value in
-        max_records is reached.
-        return: Dictionary of CSW records objects
-        """
-        # Iterate over sorted results.
+    async def get_record_from_csw(self, csw, rec):
         sortby = SortBy([SortProperty("dc:title", "ASC")])
-        csw_records = {}
-        start_position = 0
-        next_record = getattr(csw, "results", 1)
-        while next_record != 0:
-            csw.getrecords2(
-                startposition=start_position,
-                maxrecords=pagesize,
-                sortby=sortby,
-                esn='full'
-            )
-            csw_records.update(csw.records)
-            if csw.results["nextrecord"] == 0:
-                break
-            start_position += pagesize + 1
-            if start_position >= max_records:
-                break
-        csw.records.update(csw_records)
-        return csw_records
-
-    def get_all_dataset_ids(self) -> Dict[str, Any]:
-        """
-        get all the opendap dataset ids by iterating through all CSW records
-        :return: Dictionary of opendap dataset ids
-        """
-        csw = CatalogueServiceWeb(self._csw_url, timeout=60)
-        csw_rec = self.get_csw_records(csw, max_records=2000)
-        csw_obj_list = list(csw_rec.values())
-        for record in csw_obj_list:
+        csw.getrecords2(
+            startposition=rec + 1,
+            maxrecords=50,
+            sortby=sortby,
+            esn='full')
+        for record in csw.records.values():
             if len(record.uris) > 0:
                 for uris in record.uris:
                     if uris['protocol'] == 'WWW:OPENDAP':
@@ -140,6 +110,25 @@ class Cmems:
                             split_paths = path.split('/')
                             self.opendap_dataset_ids[split_paths[-1]] = \
                                 record.title
+
+    async def get_csw_records_concurrently(self, csw):
+        """
+
+        :param csw:
+        """
+        tasks = []
+        for rec in range(0, 265, 50):
+            task = asyncio.ensure_future(self.get_record_from_csw(csw, rec))
+            tasks.append(task)
+        await asyncio.gather(*tasks)
+
+    def get_all_dataset_ids(self) -> Dict[str, Any]:
+        """
+        get all the opendap dataset ids by iterating through all CSW records
+        :return: Dictionary of opendap dataset ids
+        """
+        csw = CatalogueServiceWeb(self._csw_url, timeout=60)
+        asyncio.run(self.get_csw_records_concurrently(csw))
         return self.opendap_dataset_ids
 
     def dataset_names(self) -> List[str]:

@@ -51,3 +51,7 @@ class CmemsTest(unittest.TestCase):
         dataset_dict = get_all_dataset_results()
         mock_dataset_names.return_value = dataset_dict.keys()
         self.assertEqual(520, len(cmems.dataset_names()))
+
+    def test_get_dataset_ids_without_mock(self):
+        cmems = Cmems()
+        self.assertEqual(566, len(cmems.get_all_dataset_ids()))

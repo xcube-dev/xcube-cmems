@@ -89,6 +89,11 @@ class CmemsDataStoreTest(unittest.TestCase):
                         dataset_ids)
         self.assertTrue("MetO-NWS-PHY-qh-SSH" in dataset_ids)
 
+    def test_get_data_ids_without_mock(self):
+        dataset_ids = self.datastore.get_data_ids()
+        dataset_ids = list(dataset_ids)
+        self.assertEqual(566, len(dataset_ids))
+
     @patch.object(CmemsDataOpener, "open_dataset")
     def test_describe_data(self, mock_open_dataset):
         mock_open_dataset.return_value = create_cmems_dataset()
