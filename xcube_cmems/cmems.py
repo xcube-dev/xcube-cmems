@@ -19,10 +19,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import asyncio
+from functools import cache
 from typing import List, Dict, Any
 import os
 import logging
 
+import nest_asyncio
 from urllib.parse import urlsplit
 from pydap.cas.get_cookies import setup_session
 from owslib.fes import SortBy
@@ -92,7 +94,7 @@ class Cmems:
 
         return urls
 
-    async def get_record_from_csw(self, csw, rec):
+    async def get_record_from_csw(self, csw, rec) -> None:
         sortby = SortBy([SortProperty("dc:title", "ASC")])
         csw.getrecords2(
             startposition=rec + 1,
@@ -111,10 +113,9 @@ class Cmems:
                             self.opendap_dataset_ids[split_paths[-1]] = \
                                 record.title
 
-    async def get_csw_records_concurrently(self, csw):
+    async def get_csw_records_concurrently(self, csw) -> None:
         """
-
-        :param csw:
+        get csw records concurrently
         """
         tasks = []
         for rec in range(0, 265, 50):
@@ -122,14 +123,21 @@ class Cmems:
             tasks.append(task)
         await asyncio.gather(*tasks)
 
+    @cache
     def get_all_dataset_ids(self) -> Dict[str, Any]:
         """
         get all the opendap dataset ids by iterating through all CSW records
+        currently by using asyncio
         :return: Dictionary of opendap dataset ids
         """
         csw = CatalogueServiceWeb(self._csw_url, timeout=60)
+        # Workaround for RuntimeError: event loop is already running for JNB
+        nest_asyncio.apply()
         asyncio.run(self.get_csw_records_concurrently(csw))
         return self.opendap_dataset_ids
 
     def dataset_names(self) -> List[str]:
-        return self.get_all_dataset_ids().keys()
+        if self.opendap_dataset_ids:
+            return self.opendap_dataset_ids.keys()
+        else:
+            return self.get_all_dataset_ids().keys()
