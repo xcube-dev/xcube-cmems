@@ -123,16 +123,26 @@ class CmemsDataStoreTest(unittest.TestCase):
         self.assertEqual(1, len(mocked_ds.data_vars))
         self.assertTrue('VHM0' in mocked_ds.data_vars)
 
-    def test_open_data_with_bbox(self):
-        ds = self.datastore.open_data(self.dataset_id, bbox=[9, 53, 10, 54])
+    def test_open_data_with_bbox_with_lat_lon_dim(self):
+        ds = self.datastore.open_data(
+            "SST_MED_SST_L3S_NRT_OBSERVATIONS_010_012_a"
+            , bbox=[9, 40, 10, 46])
         self.assertIsInstance(ds, xr.Dataset)
-        self.assertEqual(60, ds.dims['lat'])
-        self.assertEqual(36, ds.dims['lon'])
-        self.assertEqual('CMEMS WAM model fields (hourly)', ds.title)
+        self.assertTrue(True, 'lat' in ds.dims.mapping)
+        self.assertEqual(97, ds.dims['lat'])
+        self.assertEqual(17, ds.dims['lon'])
+
+    def test_open_data_with_bbox_with_latitude_longitude_dim(self):
+        ds = self.datastore.open_data("cmems_mod_glo_wav_anfc_0.083deg_PT3H-i"
+                                      , bbox=[9, 53, 10, 54])
+        self.assertIsInstance(ds, xr.Dataset)
+        self.assertTrue(True, 'latitude' in ds.dims.mapping)
+        self.assertEqual(13, ds.dims['latitude'])
+        self.assertEqual(13, ds.dims['longitude'])
 
     def test_get_open_data_params(self):
         open_params = self.datastore.get_open_data_params_schema(
-            self.dataset_id)
+            "cmems_mod_glo_wav_anfc_0.083deg_PT3H-i")
         self.assertIsInstance(open_params, JsonObjectSchema)
 
     def test_get_data_types(self):

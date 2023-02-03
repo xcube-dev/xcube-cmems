@@ -214,10 +214,21 @@ class CmemsDataOpener(DataOpener):
             ds = ds.sel(time=slice(open_params.get('time_range')[0],
                                    open_params.get('time_range')[1]))
         if 'bbox' in open_params:
-            ds = ds.sel({"lat": slice(open_params.get('bbox')[1],
-                                      open_params.get('bbox')[3]),
-                         "lon": slice(open_params.get('bbox')[0],
-                                      open_params.get('bbox')[2])})
+            if 'latitude' in ds.dims.mapping:
+                ds = ds.sel({"latitude": slice(open_params.get('bbox')[1],
+                                               open_params.get('bbox')[3]),
+                            "longitude": slice(open_params.get('bbox')[0],
+                                               open_params.get('bbox')[2])})
+            elif 'lat' in ds.dims.mapping:
+                ds = ds.sel({"lat": slice(open_params.get('bbox')[1],
+                                          open_params.get('bbox')[3]),
+                             "lon": slice(open_params.get('bbox')[0],
+                                          open_params.get('bbox')[2])})
+            else:
+                ds = ds.sel({"y": slice(open_params.get('bbox')[1],
+                                        open_params.get('bbox')[3]),
+                             "x": slice(open_params.get('bbox')[0],
+                                        open_params.get('bbox')[2])})
         if 'variable_names' in open_params:
             ds = ds[open_params.get('variable_names')]
         return ds
