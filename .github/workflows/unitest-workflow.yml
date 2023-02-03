@@ -24,6 +24,7 @@ jobs:
 
       - name: Run unit tests
         shell: bash -l {0}
-        run: |  
+        run: |
+          cd /home/runner/work/xcube-cmems/xcube-cmems
           pytest --cov=./ --cov-report=xml
           
