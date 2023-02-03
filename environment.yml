@@ -11,3 +11,4 @@ dependencies:
   - pyproj
   - mock
   - zarr
+  - pytest
