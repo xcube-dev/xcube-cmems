@@ -22,31 +22,11 @@ jobs:
         with:
           cache-env: true
 
-      - name: Install xcube and xcube-cmems
-        shell: bash -l {0}
-        run: |
-          git clone https://github.com/dcs4cop/xcube $HOME/runner/work/xcube
-          cd $HOME
-          cd $HOME/runner/work/xcube
-          
-          micromamba create -n xcube-cmems python=3.9 -y -c conda-forge
- 
-          micromamba activate xcube-cmems
-          micromamba update -n xcube-cmems -f environment.yml
-          python setup.py develop
-          
-          cd /home/runner/work/xcube-cmems/xcube-cmems
-          grep -v "^  - xcube" environment.yml > env_no_xcube.yml
-          micromamba update -n xcube-cmems -f env_no_xcube.yml
-          python setup.py develop
-          micromamba list -n xcube-cmems
-
       - name: Lint with flake8
         shell: bash -l {0}
         run: |
           micromamba activate xcube-cmems
           micromamba update -n xcube-cmems flake8
-          mamba install flake8
           # stop the build if there are Python syntax errors or undefined names
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
