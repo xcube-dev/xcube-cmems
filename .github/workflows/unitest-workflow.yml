@@ -26,5 +26,6 @@ jobs:
         shell: bash -l {0}
         run: |
           cd /home/runner/work/xcube-cmems/xcube-cmems
-          pytest --cov=./ --cov-report=xml
+          ls
+          pytest 
           
