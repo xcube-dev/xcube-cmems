@@ -9,6 +9,7 @@ dependencies:
   - lxml >=4.9.1
   - owslib
   - pyproj
-  - mock
   - zarr
+  # for testing
+  - mock
   - pytest
