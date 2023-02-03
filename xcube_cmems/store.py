@@ -214,21 +214,26 @@ class CmemsDataOpener(DataOpener):
             ds = ds.sel(time=slice(open_params.get('time_range')[0],
                                    open_params.get('time_range')[1]))
         if 'bbox' in open_params:
-            if 'latitude' in ds.dims.mapping:
-                ds = ds.sel({"latitude": slice(open_params.get('bbox')[1],
-                                               open_params.get('bbox')[3]),
-                            "longitude": slice(open_params.get('bbox')[0],
-                                               open_params.get('bbox')[2])})
-            elif 'lat' in ds.dims.mapping:
-                ds = ds.sel({"lat": slice(open_params.get('bbox')[1],
-                                          open_params.get('bbox')[3]),
-                             "lon": slice(open_params.get('bbox')[0],
-                                          open_params.get('bbox')[2])})
-            else:
-                ds = ds.sel({"y": slice(open_params.get('bbox')[1],
-                                        open_params.get('bbox')[3]),
-                             "x": slice(open_params.get('bbox')[0],
-                                        open_params.get('bbox')[2])})
+            x_y_var_name_pairs = [
+                {'y': 'latitude', 'x': 'longitude'},
+                {'y': 'lat', 'x': 'lon'},
+                {'y': 'y', 'x': 'x'}
+            ]
+            name_pair_found = False
+            for name_pair in x_y_var_name_pairs:                
+                if name_pair['y'] in ds.dims and name_pair['x'] in ds.dims:
+                    ds = ds.sel({name_pair['y']: 
+                                     slice(open_params.get('bbox')[1],
+                                           open_params.get('bbox')[3]),
+                                 name_pair['x']: 
+                                     slice(open_params.get('bbox')[0],
+                                           open_params.get('bbox')[2])
+                                 })
+                    name_pair_found = True
+                    break
+            if not name_pair_found:                
+                raise ValueError('No valid spatial coordinates found. '
+                                 'Spatial subsetting not possible.')
         if 'variable_names' in open_params:
             ds = ds[open_params.get('variable_names')]
         return ds
