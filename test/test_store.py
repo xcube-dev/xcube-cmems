@@ -128,8 +128,9 @@ class CmemsDataStoreTest(unittest.TestCase):
             "SST_MED_SST_L3S_NRT_OBSERVATIONS_010_012_a"
             , bbox=[9, 40, 10, 46])
         self.assertIsInstance(ds, xr.Dataset)
-        self.assertTrue(True, 'lat' in ds.dims.mapping)
+        self.assertTrue('lat' in ds.dims)
         self.assertEqual(97, ds.dims['lat'])
+        self.assertTrue('lon' in ds.dims)
         self.assertEqual(17, ds.dims['lon'])
 
     def test_open_data_with_bbox_with_latitude_longitude_dim(self):
