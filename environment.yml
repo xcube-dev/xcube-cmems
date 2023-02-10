@@ -10,6 +10,7 @@ dependencies:
   - owslib
   - pyproj
   - zarr
+  - nest-asyncio
   # for testing
   - mock
   - pytest
