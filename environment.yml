@@ -4,11 +4,12 @@ channels:
   - defaults
 dependencies:
   # Required
-  - xcube >= 0.12.1
-  - pydap
+  - xcube >=0.12.1
+  - pydap >=3.3.0
   - lxml >=4.9.1
   - owslib
   - pyproj
-  - mock
   - zarr
-  - nest-asyncio
+  # for testing
+  - mock
+  - pytest
