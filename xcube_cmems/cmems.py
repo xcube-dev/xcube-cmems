@@ -20,7 +20,7 @@
 # SOFTWARE.
 import asyncio
 from functools import cache
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import os
 import logging
 
@@ -53,15 +53,14 @@ class Cmems:
     """
 
     def __init__(self,
-                 cmems_username: str = os.getenv('CMEMS_USERNAME'),
-                 cmems_password: str = os.getenv('CMEMS_PASSWORD'),
+                 cmems_username: Optional[str] = None,
+                 cmems_password: Optional[str] = None,
                  cas_url: str = CAS_URL,
                  csw_url: str = CSW_URL,
                  databases: List = DATABASE,
-                 server: str = ODAP_SERVER
-                 ):
-        self.cmems_username = cmems_username
-        self.cmems_password = cmems_password
+                 server: str = ODAP_SERVER):
+        self.cmems_username = cmems_username or os.getenv('CMEMS_USERNAME')
+        self.cmems_password = cmems_password or os.getenv('CMEMS_PASSWORD')
         self.valid_opendap_url = None
         self._csw_url = csw_url
         self.databases = databases
