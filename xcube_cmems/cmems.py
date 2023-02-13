@@ -94,6 +94,10 @@ class Cmems:
         return urls
 
     async def get_record_from_csw(self, csw, rec) -> None:
+        """
+        Construct opendap dataset_ids from csw records, maxrecords is the
+        predefined number of records fetched from csw.getrecords2
+        """
         sortby = SortBy([SortProperty("dc:title", "ASC")])
         csw.getrecords2(
             startposition=rec + 1,
@@ -117,7 +121,9 @@ class Cmems:
         get csw records concurrently
         """
         tasks = []
-        for rec in range(0, 265, 50):
+        num_of_records = 50
+        total_records = 300
+        for rec in range(0, total_records, num_of_records):
             task = asyncio.ensure_future(self.get_record_from_csw(csw, rec))
             tasks.append(task)
         await asyncio.gather(*tasks)
