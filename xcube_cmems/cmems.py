@@ -8,8 +8,8 @@
 # and/or sell copies of the Software, and to permit persons to whom the
 # Software is furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -59,8 +59,10 @@ class Cmems:
                  csw_url: str = CSW_URL,
                  databases: List = DATABASE,
                  server: str = ODAP_SERVER):
-        self.cmems_username = cmems_username or os.getenv('CMEMS_USERNAME')
-        self.cmems_password = cmems_password or os.getenv('CMEMS_PASSWORD')
+        self.cmems_username = cmems_username if cmems_username is not None \
+            else os.getenv('CMEMS_USERNAME')
+        self.cmems_password = cmems_password if cmems_password is not None \
+            else os.getenv('CMEMS_PASSWORD')
         self.valid_opendap_url = None
         self._csw_url = csw_url
         self.databases = databases
@@ -69,8 +71,8 @@ class Cmems:
         self.opendap_dataset_ids = {}
 
         if not self.cmems_username or not self.cmems_password:
-            raise Exception('CmemsDataStore needs cmems credentials in env vars'
-                            ' CMEMS_USERNAME and CMEMS_PASSWORD or to be '
+            raise Exception('CmemsDataStore needs cmems credentials in env '
+                            'vars CMEMS_USERNAME and CMEMS_PASSWORD or to be '
                             'provided as store params')
 
         self.session = setup_session(cas_url, self.cmems_username,
