@@ -1,3 +1,8 @@
+## Changes in 0.1.2 (in development)
+
+- addressed initialization of cmems credentials from environment variables conditionally
+  so that they are also evaluated when new_data_store is called.
+
 ## Changes in 0.1.1
 
 - Fixed a bug when opening dataset with bounding box. Now the following spatial coords naming styles are
