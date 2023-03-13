@@ -71,7 +71,8 @@ class Cmems:
         if not self.cmems_username or not self.cmems_password:
             raise Exception('CmemsDataStore needs cmems credentials in env '
                             'vars CMEMS_USERNAME and CMEMS_PASSWORD or to be '
-                            'provided as store params')
+                            'provided as store params cmems_username and '
+                            'cmems_password')
 
         self.session = setup_session(cas_url, self.cmems_username,
                                      self.cmems_password)
