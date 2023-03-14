@@ -7,7 +7,8 @@
 
 - Fixed a bug when opening dataset with bounding box. Now the following spatial coords naming styles are
   supported: (lat,lon), (latitude,longitude), (y,x).
-- set cookie 'CASTGC' optionally to avoid users from getting KeyError, closes #12
+- Set cookie 'CASTGC' only if it previously existed to avoid users from getting KeyError. (#12)
+
 - Addressed inconsistent parameter names for credentials and rely on global environment variables
   CMEMS_USERNAME and CMEMS_PASSWORD.  (#11) (#15) (#16) (#17)
 
