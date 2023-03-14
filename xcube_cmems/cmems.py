@@ -71,8 +71,8 @@ class Cmems:
         self.opendap_dataset_ids = {}
 
         if not self.cmems_username or not self.cmems_password:
-            raise Exception('CmemsDataStore needs cmems credentials in env '
-                            'vars CMEMS_USERNAME and CMEMS_PASSWORD or to be '
+            raise ValueError('CmemsDataStore needs cmems credentials in environment '
+                            'variables CMEMS_USERNAME and CMEMS_PASSWORD or to be '
                             'provided as store params')
 
         self.session = setup_session(cas_url, self.cmems_username,
