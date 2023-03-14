@@ -80,7 +80,6 @@ class Cmems:
 
         cast_gc = self.session.cookies.get_dict().get('CASTGC')
         if cast_gc:
-            # Check, why is this needed at all?
             # required by Central Authentication Service (CAS).
             # The setup_session function from pydap.cas.get_cookies is used to
             # establish a session with the CAS
