@@ -35,6 +35,8 @@ from .constants import CAS_URL
 from .constants import ODAP_SERVER
 from .constants import DATABASE
 from .constants import CSW_URL
+from .constants import TOTAL_RECORDS_CSW
+from .constants import STEP_SIZE
 
 _LOG = logging.getLogger('xcube')
 
@@ -71,9 +73,11 @@ class Cmems:
         self.opendap_dataset_ids = {}
 
         if not self.cmems_username or not self.cmems_password:
-            raise ValueError('CmemsDataStore needs cmems credentials in environment '
-                            'variables CMEMS_USERNAME and CMEMS_PASSWORD or to be '
-                            'provided as store params')
+            raise ValueError('CmemsDataStore needs cmems credentials in '
+                             'environment variables CMEMS_USERNAME and '
+                             'CMEMS_PASSWORD or to be provided as '
+                             'store params cmems_username and '
+                             'cmems_password')
 
         self.session = setup_session(cas_url, self.cmems_username,
                                      self.cmems_password)
@@ -125,9 +129,10 @@ class Cmems:
         get csw records concurrently
         """
         tasks = []
-        num_of_records = 50
-        total_records = 300
-        for rec in range(0, total_records, num_of_records):
+        # records returned by csw for CMEMS is 281 currently, since it is not
+        # possible know this before calling csw.getrecords, TOTAL_RECORDS_CSW
+        # and STEP_SIZE is declared as constants
+        for rec in range(0, TOTAL_RECORDS_CSW, STEP_SIZE):
             task = asyncio.ensure_future(self.get_record_from_csw(csw, rec))
             tasks.append(task)
         await asyncio.gather(*tasks)
