@@ -1,6 +1,7 @@
 ## Changes in 0.1.2
 
-- Improved the performance of get_data_ids method of the store by using asyncio and caching,closes #18
+- Improved the performance of get_data_ids method of the store by using asyncio and caching. (#18)
+
 
 ## Changes in 0.1.1
 
