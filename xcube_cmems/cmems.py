@@ -42,6 +42,9 @@ CSW_NAMESPACES = {
     'dc': 'http://purl.org/dc/elements/1.1/',
     'csw': 'http://www.opengis.net/cat/csw/2.0.2'
 }
+RECORDS_PER_REQUEST = 25
+# Ideally, we would read this from cmems
+TOTAL_NUM_OF_RECORDS = 300
 
 
 class Cmems:
@@ -121,7 +124,7 @@ class Cmems:
                 break
         return None
 
-    async def read_data_ids_from_csw_records(self, rec, max_records, session):
+    async def read_data_ids_from_csw_records(self, rec, session):
         params = {
             'service': 'CSW',
             'request': 'GetRecords',
@@ -129,7 +132,7 @@ class Cmems:
             'resultType': 'results',
             'ElementSetName': 'full',
             'startPosition': rec + 1,
-            'maxRecords': max_records
+            'maxRecords': RECORDS_PER_REQUEST
         }
         resp = await self.get_response(
             session, self._csw_url, params
@@ -154,15 +157,13 @@ class Cmems:
         get csw records concurrently
         """
         tasks = []
-        records_per_request = 25
-        total_num_of_records = 300
 
         async with aiohttp.ClientSession(
                 connector=aiohttp.TCPConnector(limit=50, force_close=True)
         ) as session:
-            for rec in range(0, total_num_of_records, records_per_request):
+            for rec in range(0, TOTAL_NUM_OF_RECORDS, RECORDS_PER_REQUEST):
                 tasks.append(self.read_data_ids_from_csw_records(
-                    rec, records_per_request, session
+                    rec, session
                 ))
             await asyncio.gather(*tasks)
 
