@@ -18,18 +18,18 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import aiohttp
 import asyncio
 from functools import cache
+from io import BytesIO
 from typing import List, Dict, Any, Optional
+import lxml.etree as etree
 import os
 import logging
+import time
 
 import nest_asyncio
-from urllib.parse import urlsplit
 from pydap.cas.get_cookies import setup_session
-from owslib.fes import SortBy
-from owslib.fes import SortProperty
-from owslib.csw import CatalogueServiceWeb
 
 from .constants import CAS_URL
 from .constants import ODAP_SERVER
@@ -38,6 +38,10 @@ from .constants import CSW_URL
 
 _LOG = logging.getLogger('xcube')
 
+CSW_NAMESPACES = {
+    'dc': 'http://purl.org/dc/elements/1.1/',
+    'csw': 'http://www.opengis.net/cat/csw/2.0.2'
+}
 
 class Cmems:
     """
@@ -97,40 +101,69 @@ class Cmems:
 
         return urls
 
-    async def get_record_from_csw(self, csw, rec) -> None:
-        """
-        Construct opendap dataset_ids from csw records, maxrecords is the
-        predefined number of records fetched from csw.getrecords2
-        """
-        sortby = SortBy([SortProperty("dc:title", "ASC")])
-        csw.getrecords2(
-            startposition=rec + 1,
-            maxrecords=50,
-            sortby=sortby,
-            esn='full')
-        for record in csw.records.values():
-            if len(record.uris) > 0:
-                for uris in record.uris:
-                    if uris['protocol'] == 'WWW:OPENDAP':
-                        if uris['url']:
-                            opendap_uri = uris['url']
-                            scheme, netloc, path, query, fragment = \
-                                urlsplit(opendap_uri)
-                            split_paths = path.split('/')
-                            self.opendap_dataset_ids[split_paths[-1]] = \
-                                record.title
+    @staticmethod
+    async def get_response(session: aiohttp.ClientSession,
+                           url: str,
+                           params: Dict) -> \
+            Optional[aiohttp.ClientResponse]:
+        num_retries = 10
+        for i in range(num_retries):
+            resp = await session.request(method='GET',
+                                         url=url,
+                                         ssl=True,
+                                         params=params)
+            if resp.status == 200:
+                return resp
+            elif resp.status == 429:
+                time.sleep(10)
+            else:
+                break
+        return None
 
-    async def get_csw_records_concurrently(self, csw) -> None:
+    async def read_data_ids_from_csw_records(self, rec, max_records, session):
+        params = {
+            'service': 'CSW',
+            'request': 'GetRecords',
+            'version': '2.0.2',
+            'resultType': 'results',
+            'ElementSetName': 'full',
+            'startPosition': rec + 1,
+            'maxRecords': max_records
+        }
+        resp = await self.get_response(
+            session, self._csw_url, params
+        )
+        if not resp:
+            return
+        records_xml = etree.parse(BytesIO(await resp.content.read()))
+        opendap_elements = records_xml.getroot().findall(
+            './csw:SearchResults/csw:Record/dc:URI[@protocol="WWW:OPENDAP"]',
+            namespaces=CSW_NAMESPACES
+        )
+        for opendap_element in opendap_elements:
+            name = opendap_element.get('name')
+            title = opendap_element.getparent().find(
+                'dc:title',
+                namespaces=CSW_NAMESPACES
+            ).text
+            self.opendap_dataset_ids[name] = title
+
+    async def read_data_ids(self) -> None:
         """
         get csw records concurrently
         """
         tasks = []
-        num_of_records = 50
-        total_records = 300
-        for rec in range(0, total_records, num_of_records):
-            task = asyncio.ensure_future(self.get_record_from_csw(csw, rec))
-            tasks.append(task)
-        await asyncio.gather(*tasks)
+        records_per_request = 25
+        total_num_of_records = 300
+
+        async with aiohttp.ClientSession(
+                connector=aiohttp.TCPConnector(limit=50, force_close=True)
+        ) as session:
+            for rec in range(0, total_num_of_records, records_per_request):
+                tasks.append(self.read_data_ids_from_csw_records(
+                    rec, records_per_request, session
+                ))
+            await asyncio.gather(*tasks)
 
     @cache
     def get_all_dataset_ids(self) -> Dict[str, Any]:
@@ -139,10 +172,9 @@ class Cmems:
         currently by using asyncio
         :return: Dictionary of opendap dataset ids
         """
-        csw = CatalogueServiceWeb(self._csw_url, timeout=60)
         # Workaround for RuntimeError: event loop is already running for JNB
         nest_asyncio.apply()
-        asyncio.run(self.get_csw_records_concurrently(csw))
+        asyncio.run(self.read_data_ids())
         return self.opendap_dataset_ids
 
     def dataset_names(self) -> List[str]:
