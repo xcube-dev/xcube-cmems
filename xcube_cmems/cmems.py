@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import os
 import logging
 
@@ -51,15 +51,16 @@ class Cmems:
     """
 
     def __init__(self,
-                 cmems_username: str = os.getenv('CMEMS_USERNAME'),
-                 cmems_password: str = os.getenv('CMEMS_PASSWORD'),
+                 cmems_username: Optional[str] = None,
+                 cmems_password: Optional[str] = None,
                  cas_url: str = CAS_URL,
                  csw_url: str = CSW_URL,
                  databases: List = DATABASE,
-                 server: str = ODAP_SERVER
-                 ):
-        self.cmems_username = cmems_username
-        self.cmems_password = cmems_password
+                 server: str = ODAP_SERVER):
+        self.cmems_username = cmems_username if cmems_username is not None \
+            else os.getenv('CMEMS_USERNAME')
+        self.cmems_password = cmems_password if cmems_password is not None \
+            else os.getenv('CMEMS_PASSWORD')
         self.valid_opendap_url = None
         self._csw_url = csw_url
         self.databases = databases
@@ -68,16 +69,20 @@ class Cmems:
         self.opendap_dataset_ids = {}
 
         if not self.cmems_username or not self.cmems_password:
-            raise Exception('CmemsDataStore needs cmems credentials in env vars'
-                            ' CMEMS_USERNAME and CMEMS_PASSWORD or to be '
-                            'provided as store params')
+            raise ValueError('CmemsDataStore needs cmems credentials in '
+                             'environment variables CMEMS_USERNAME and '
+                             'CMEMS_PASSWORD or to be '
+                             'provided as store params cmems_username and '
+                             'cmems_password')
 
         self.session = setup_session(cas_url, self.cmems_username,
                                      self.cmems_password)
 
         cast_gc = self.session.cookies.get_dict().get('CASTGC')
         if cast_gc:
-            # Check, why is this needed at all?
+            # required by Central Authentication Service (CAS).
+            # The setup_session function from pydap.cas.get_cookies is used to
+            # establish a session with the CAS
             self.session.cookies.set("CASTGC", cast_gc)
 
     def get_opendap_urls(self, data_id) -> List[str]:
