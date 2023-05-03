@@ -42,7 +42,16 @@ CSW_NAMESPACES = {
     'dc': 'http://purl.org/dc/elements/1.1/',
     'csw': 'http://www.opengis.net/cat/csw/2.0.2'
 }
+
 _RECORDS_PER_REQUEST = 25
+_GET_RECORDS_REQUEST = {
+    'service': 'CSW',
+    'request': 'GetRecords',
+    'version': '2.0.2',
+    'resultType': 'results',
+    'ElementSetName': 'full',
+    'maxRecords': _RECORDS_PER_REQUEST
+}
 # Ideally, we would read this from cmems
 _TOTAL_NUM_OF_RECORDS = 300
 
@@ -128,15 +137,7 @@ class Cmems:
 
     async def read_data_ids_from_csw_records(self, start_record: int,
                                              session: aiohttp.ClientSession):
-        params = {
-            'service': 'CSW',
-            'request': 'GetRecords',
-            'version': '2.0.2',
-            'resultType': 'results',
-            'ElementSetName': 'full',
-            'startPosition': start_record + 1,
-            'maxRecords': _RECORDS_PER_REQUEST
-        }
+        params = {**_GET_RECORDS_REQUEST, 'startPosition': start_record + 1}
         resp = await self.get_response(
             session, self._csw_url, params
         )
