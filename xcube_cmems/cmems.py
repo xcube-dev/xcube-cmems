@@ -126,14 +126,15 @@ class Cmems:
                 break
         return None
 
-    async def read_data_ids_from_csw_records(self, rec, session):
+    async def read_data_ids_from_csw_records(self, start_record: int,
+                                             session: aiohttp.ClientSession):
         params = {
             'service': 'CSW',
             'request': 'GetRecords',
             'version': '2.0.2',
             'resultType': 'results',
             'ElementSetName': 'full',
-            'startPosition': rec + 1,
+            'startPosition': start_record + 1,
             'maxRecords': RECORDS_PER_REQUEST
         }
         resp = await self.get_response(
@@ -163,9 +164,9 @@ class Cmems:
         async with aiohttp.ClientSession(
                 connector=aiohttp.TCPConnector(limit=50, force_close=True)
         ) as session:
-            for rec in range(0, TOTAL_NUM_OF_RECORDS, RECORDS_PER_REQUEST):
+            for record in range(0, TOTAL_NUM_OF_RECORDS, RECORDS_PER_REQUEST):
                 tasks.append(self.read_data_ids_from_csw_records(
-                    rec, session
+                    record, session
                 ))
             await asyncio.gather(*tasks)
 
