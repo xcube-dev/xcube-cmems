@@ -22,7 +22,6 @@
 from typing import Any, List, Tuple, Container, Union, Iterator, Dict
 import logging
 
-import pyproj
 import zarr
 import xarray as xr
 import numpy as np
@@ -129,7 +128,7 @@ class CmemsDataOpener(DataOpener):
                                        bbox=gm.xy_bbox,
                                        time_range=temporal_coverage,
                                        time_period=temporal_resolution)
-        data_schema = self._get_open_data_params_schema(descriptor)
+        data_schema = self.get_open_data_params_schema()
         descriptor.open_params_schema = data_schema
         return descriptor
 
@@ -220,18 +219,18 @@ class CmemsDataOpener(DataOpener):
                 {'y': 'y', 'x': 'x'}
             ]
             name_pair_found = False
-            for name_pair in x_y_var_name_pairs:                
+            for name_pair in x_y_var_name_pairs:
                 if name_pair['y'] in ds.dims and name_pair['x'] in ds.dims:
-                    ds = ds.sel({name_pair['y']: 
+                    ds = ds.sel({name_pair['y']:
                                      slice(open_params.get('bbox')[1],
                                            open_params.get('bbox')[3]),
-                                 name_pair['x']: 
+                                 name_pair['x']:
                                      slice(open_params.get('bbox')[0],
                                            open_params.get('bbox')[2])
                                  })
                     name_pair_found = True
                     break
-            if not name_pair_found:                
+            if not name_pair_found:
                 raise ValueError('No valid spatial coordinates found. '
                                  'Spatial subsetting not possible.')
         if 'variable_names' in open_params:
@@ -252,36 +251,17 @@ class CmemsDataOpener(DataOpener):
 
     def get_open_data_params_schema(self,
                                     data_id: str = None) -> JsonObjectSchema:
-        if data_id is None:
-            return self._get_open_data_params_schema()
-        dsd = self.describe_data(data_id)
-        return self._get_open_data_params_schema(dsd)
-
-    @staticmethod
-    def _get_open_data_params_schema(dsd: DatasetDescriptor = None) -> \
-            JsonObjectSchema:
-        min_date = dsd.time_range[0] if dsd and dsd.time_range else None
-        max_date = dsd.time_range[1] if dsd and dsd.time_range else None
         dataset_params = dict(
-            variable_names=JsonArraySchema(items=JsonStringSchema(
-                enum=dsd.data_vars.keys() if dsd and dsd.data_vars else None)),
-            time_range=JsonDateSchema.new_range(min_date, max_date)
-        )
-        if dsd:
-            try:
-                if pyproj.CRS.from_string(dsd.crs).is_geographic:
-                    min_lon = dsd.bbox[0] if dsd and dsd.bbox else -180
-                    min_lat = dsd.bbox[1] if dsd and dsd.bbox else -90
-                    max_lon = dsd.bbox[2] if dsd and dsd.bbox else 180
-                    max_lat = dsd.bbox[3] if dsd and dsd.bbox else 90
-                    bbox = JsonArraySchema(items=(
-                        JsonNumberSchema(minimum=min_lon, maximum=max_lon),
-                        JsonNumberSchema(minimum=min_lat, maximum=max_lat),
-                        JsonNumberSchema(minimum=min_lon, maximum=max_lon),
-                        JsonNumberSchema(minimum=min_lat, maximum=max_lat)))
-                    dataset_params['bbox'] = bbox
-            except pyproj.exceptions.CRSError:
-                pass
+            variable_names=JsonArraySchema(
+                items=(JsonStringSchema(min_length=0)),
+                unique_items=True
+            ),
+            time_range=JsonDateSchema.new_range(),
+            bbox=JsonArraySchema(items=(
+                JsonNumberSchema(minimum=-180, maximum=180),
+                JsonNumberSchema(minimum=-90, maximum=90),
+                JsonNumberSchema(minimum=-180, maximum=180),
+                JsonNumberSchema(minimum=-90, maximum=90))))
         cmems_schema = JsonObjectSchema(
             properties=dict(**dataset_params),
             required=[
