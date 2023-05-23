@@ -8,8 +8,8 @@
 # and/or sell copies of the Software, and to permit persons to whom the
 # Software is furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -18,15 +18,16 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import aiohttp
-import asyncio
-from functools import cache
-from io import BytesIO
+
 from typing import List, Dict, Any, Optional
-import lxml.etree as etree
 import os
 import logging
 import time
+import aiohttp
+import asyncio
+import lxml.etree as etree
+from io import BytesIO
+from functools import cache
 
 import nest_asyncio
 from pydap.cas.get_cookies import setup_session
@@ -88,8 +89,8 @@ class Cmems:
         if not self.cmems_username or not self.cmems_password:
             raise ValueError('CmemsDataStore needs cmems credentials in '
                              'environment variables CMEMS_USERNAME and '
-                             'CMEMS_PASSWORD or to be provided as '
-                             'store params cmems_username and '
+                             'CMEMS_PASSWORD or to be '
+                             'provided as store params cmems_username and '
                              'cmems_password')
 
         self.session = setup_session(cas_url, self.cmems_username,

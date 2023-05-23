@@ -155,3 +155,18 @@ class CmemsDataStoreTest(unittest.TestCase):
         mock_dataset_names.return_value = dataset_dict.keys()
         self.assertEqual(True, self.datastore.has_data(self.dataset_id))
 
+
+class CmemsDataStoreParamsTest(unittest.TestCase):
+
+    def test_store_for_cmems_credentials(self):
+        params = {
+            'cmems_username': "",
+            'cmems_password': ""
+        }
+        with self.assertRaises(Exception) as e:
+            CmemsDataStore(**params)
+        self.assertEqual('CmemsDataStore needs cmems credentials in '
+                         'environment variables '
+                         'CMEMS_USERNAME and CMEMS_PASSWORD or to '
+                         'be provided as store params cmems_username '
+                         'and cmems_password', f'{e.exception}')
