@@ -143,7 +143,7 @@ class CmemsDataStoreTest(unittest.TestCase):
 
     def test_get_open_data_params(self):
         open_params = self.datastore.get_open_data_params_schema(
-            "cmems_mod_glo_wav_anfc_0.083deg_PT3H-i")
+            "cmems_obs-si_ant_phy_nrt_l3-1km_P1D")
         self.assertIsInstance(open_params, JsonObjectSchema)
 
     def test_get_data_types(self):
