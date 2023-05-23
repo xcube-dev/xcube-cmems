@@ -11,6 +11,7 @@ dependencies:
   - pyproj
   - zarr
   - nest-asyncio
+  - tenacity
   # pinning the version to overwrite xcube versioning, remove after next xcube
   # release
   - gdal >=3.0,<3.6.3

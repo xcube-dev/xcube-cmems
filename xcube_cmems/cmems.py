@@ -31,6 +31,7 @@ from functools import cache
 
 import nest_asyncio
 from pydap.cas.get_cookies import setup_session
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 from .constants import CAS_URL
 from .constants import ODAP_SERVER
@@ -120,18 +121,30 @@ class Cmems:
                            url: str,
                            params: Dict) -> \
             Optional[aiohttp.ClientResponse]:
-        num_retries = 10
-        for i in range(num_retries):
-            resp = await session.request(method='GET',
-                                         url=url,
-                                         ssl=True,
-                                         params=params)
+        """
+         Sends an HTTP GET request with the specified parameters using the
+         provided aiohttp client session.
+        :param session: The aiohttp client session to use for making HTTP
+        requests.
+        :param url: The URL of the request.
+        :param params: The parameters to include in the request.
+        :return: Optional[aiohttp.ClientResponse]: The aiohttp client response
+        if the request is successful or Returns None if the
+        request fails or exceeds the maximum number of retries.
+        """
+        @retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=2))
+        async def _make_request():
+            return await session.request(
+                method='GET',
+                url=url,
+                ssl=True,
+                params=params)
+        try:
+            resp = await _make_request()
             if resp.status == 200:
                 return resp
-            elif resp.status == 429:
-                time.sleep(10)
-            else:
-                break
+        except aiohttp.ClientError:
+            pass
         return None
 
     async def read_data_ids_from_csw_records(self, start_record: int,
