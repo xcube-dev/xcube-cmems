@@ -132,7 +132,8 @@ class Cmems:
         if the request is successful or Returns None if the
         request fails or exceeds the maximum number of retries.
         """
-        @retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=2))
+        @retry(stop=stop_after_attempt(5),
+               wait=wait_exponential(min=3, multiplier=2))
         async def _make_request():
             return await session.request(
                 method='GET',
@@ -143,8 +144,8 @@ class Cmems:
             resp = await _make_request()
             if resp.status == 200:
                 return resp
-        except aiohttp.ClientError:
-            pass
+        except aiohttp.ClientError as e:
+            _LOG.info(f"Encountered exception during csw GET request: {e}")
         return None
 
     async def read_data_ids_from_csw_records(self, start_record: int,
