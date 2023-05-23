@@ -21,6 +21,8 @@ jobs:
         uses: mamba-org/provision-with-micromamba@main
         with:
           cache-env: true
+          extra-specs: |
+            python=3.10
 
       - name: Run unit tests
         shell: bash -l {0}
