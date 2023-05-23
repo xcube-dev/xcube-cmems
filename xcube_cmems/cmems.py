@@ -52,8 +52,6 @@ _GET_RECORDS_REQUEST = {
     'ElementSetName': 'full',
     'maxRecords': _RECORDS_PER_REQUEST
 }
-# Ideally, we would read this from cmems
-_TOTAL_NUM_OF_RECORDS = 300
 
 
 class Cmems:
@@ -165,11 +163,21 @@ class Cmems:
         async with aiohttp.ClientSession(
                 connector=aiohttp.TCPConnector(limit=50, force_close=True)
         ) as session:
-            for record in range(0, _TOTAL_NUM_OF_RECORDS, _RECORDS_PER_REQUEST):
-                tasks.append(self.read_data_ids_from_csw_records(
-                    record, session
-                ))
-            await asyncio.gather(*tasks)
+            params = {**_GET_RECORDS_REQUEST, 'startPosition': '1',
+                      'maxRecords': '1'}
+            resp = await self.get_response(session, self._csw_url, params)
+            if resp:
+                records_xml = etree.parse(BytesIO(await resp.content.read()))
+                total_records_element = records_xml.getroot().find(
+                    './csw:SearchResults', namespaces=CSW_NAMESPACES)
+                total_records = int(total_records_element.get(
+                    'numberOfRecordsMatched')) \
+                    if total_records_element is not None else 0
+                if total_records > 0:
+                    for record in range(0, total_records, _RECORDS_PER_REQUEST):
+                        tasks.append(self.read_data_ids_from_csw_records
+                                     (record, session))
+                    await asyncio.gather(*tasks)
 
     @cache
     def get_all_dataset_ids(self) -> Dict[str, Any]:
