@@ -136,6 +136,14 @@ class Cmems:
 
     async def read_data_ids_from_csw_records(self, start_record: int,
                                              session: aiohttp.ClientSession):
+        """
+        Retrieves data IDs from CSW records starting from the specified
+        start_record index.
+        :param start_record: The start index of the CSW records to retrieve.
+        :param session: The aiohttp client session to use for making HTTP
+        requests.
+        :return: None
+        """
         params = {**_GET_RECORDS_REQUEST, 'startPosition': start_record + 1}
         resp = await self.get_response(
             session, self._csw_url, params
@@ -157,7 +165,9 @@ class Cmems:
 
     async def read_data_ids(self) -> None:
         """
-        get csw records concurrently
+        get csw records concurrently, obtain total_records first and then
+        iterate over the range of records in increments of
+        _RECORDS_PER_REQUEST.
         """
         tasks = []
 
