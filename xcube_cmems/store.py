@@ -252,16 +252,16 @@ class CmemsDataOpener(DataOpener):
     def get_open_data_params_schema(self,
                                     data_id: str = None) -> JsonObjectSchema:
         dataset_params = dict(
-            variable_names=JsonArraySchema(
-                items=(JsonStringSchema(min_length=0)),
-                unique_items=True
-            ),
-            time_range=JsonDateSchema.new_range(),
-            bbox=JsonArraySchema(items=(
-                JsonNumberSchema(minimum=-180, maximum=180),
-                JsonNumberSchema(minimum=-90, maximum=90),
-                JsonNumberSchema(minimum=-180, maximum=180),
-                JsonNumberSchema(minimum=-90, maximum=90))))
+                variable_names=JsonArraySchema(
+                    items=(JsonStringSchema(min_length=0)),
+                    unique_items=True
+                ),
+                time_range=JsonDateSchema.new_range(),
+                bbox=JsonArraySchema(items=(
+                    JsonNumberSchema(minimum=-180, maximum=180),
+                    JsonNumberSchema(minimum=-90, maximum=90),
+                    JsonNumberSchema(minimum=-180, maximum=180),
+                    JsonNumberSchema(minimum=-90, maximum=90))))
         cmems_schema = JsonObjectSchema(
             properties=dict(**dataset_params),
             required=[

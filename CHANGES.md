@@ -1,12 +1,10 @@
-## Changes in 0.1.3
-
-- Revised get_open_data_params logic to not open the dataset but only return 
-  open_params without actual metadata.
-
 ## Changes in 0.1.2 
 
 - Addressed initialization of cmems credentials from environment variables conditionally
   so that they are evaluated when new_data_store is called.
+
+- Revised get_open_data_params logic to not open the dataset but only return 
+  open_params without actual metadata.
 
 ## Changes in 0.1.1
 
