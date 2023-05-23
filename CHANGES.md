@@ -9,7 +9,8 @@
 - Revised get_open_data_params logic to not open the dataset but only return open_params without actual metadata. (#26)
 
 - Improved the performance of get_data_ids method of the store by using 
-  aiohttp to make parallel calls to CSW API. (#18)
+  package `aiohttp` to make parallel calls to CSW API. (#18)
+
 
 ## Changes in 0.1.1
 
