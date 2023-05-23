@@ -51,3 +51,4 @@ class CmemsTest(unittest.TestCase):
         dataset_dict = get_all_dataset_results()
         mock_dataset_names.return_value = dataset_dict.keys()
         self.assertEqual(520, len(cmems.dataset_names()))
+

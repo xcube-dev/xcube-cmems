@@ -22,12 +22,16 @@
 from typing import List, Dict, Any, Optional
 import os
 import logging
+import time
+import aiohttp
+import asyncio
+import lxml.etree as etree
+from io import BytesIO
+from functools import cache
 
-from urllib.parse import urlsplit
+import nest_asyncio
 from pydap.cas.get_cookies import setup_session
-from owslib.fes import SortBy
-from owslib.fes import SortProperty
-from owslib.csw import CatalogueServiceWeb
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 from .constants import CAS_URL
 from .constants import ODAP_SERVER
@@ -35,6 +39,21 @@ from .constants import DATABASE
 from .constants import CSW_URL
 
 _LOG = logging.getLogger('xcube')
+
+CSW_NAMESPACES = {
+    'dc': 'http://purl.org/dc/elements/1.1/',
+    'csw': 'http://www.opengis.net/cat/csw/2.0.2'
+}
+
+_RECORDS_PER_REQUEST = 25
+_GET_RECORDS_REQUEST = {
+    'service': 'CSW',
+    'request': 'GetRecords',
+    'version': '2.0.2',
+    'resultType': 'results',
+    'ElementSetName': 'full',
+    'maxRecords': _RECORDS_PER_REQUEST
+}
 
 
 class Cmems:
@@ -98,54 +117,107 @@ class Cmems:
         return urls
 
     @staticmethod
-    def get_csw_records(csw, pagesize: int = 10, max_records: int = 300) \
-            -> Dict[Any, Any]:
+    async def get_response(session: aiohttp.ClientSession,
+                           url: str,
+                           params: Dict) -> \
+            Optional[aiohttp.ClientResponse]:
         """
-        Iterate max_records/pagesize times until the requested value in
-        max_records is reached.
-        return: Dictionary of CSW records objects
+         Sends an HTTP GET request with the specified parameters using the
+         provided aiohttp client session.
+        :param session: The aiohttp client session to use for making HTTP
+        requests.
+        :param url: The URL of the request.
+        :param params: The parameters to include in the request.
+        :return: Optional[aiohttp.ClientResponse]: The aiohttp client response
+        if the request is successful or Returns None if the
+        request fails or exceeds the maximum number of retries.
         """
-        # Iterate over sorted results.
-        sortby = SortBy([SortProperty("dc:title", "ASC")])
-        csw_records = {}
-        start_position = 0
-        next_record = getattr(csw, "results", 1)
-        while next_record != 0:
-            csw.getrecords2(
-                startposition=start_position,
-                maxrecords=pagesize,
-                sortby=sortby,
-                esn='full'
-            )
-            csw_records.update(csw.records)
-            if csw.results["nextrecord"] == 0:
-                break
-            start_position += pagesize + 1
-            if start_position >= max_records:
-                break
-        csw.records.update(csw_records)
-        return csw_records
+        @retry(stop=stop_after_attempt(5),
+               wait=wait_exponential(min=3, multiplier=2))
+        async def _make_request():
+            return await session.request(
+                method='GET',
+                url=url,
+                ssl=True,
+                params=params)
+        try:
+            resp = await _make_request()
+            if resp.status == 200:
+                return resp
+        except aiohttp.ClientError as e:
+            _LOG.info(f"Encountered exception during csw GET request: {e}")
+        return None
 
+    async def read_data_ids_from_csw_records(self, start_record: int,
+                                             session: aiohttp.ClientSession):
+        """
+        Retrieves data IDs from CSW records starting from the specified
+        start_record index.
+        :param start_record: The start index of the CSW records to retrieve.
+        :param session: The aiohttp client session to use for making HTTP
+        requests.
+        :return: None
+        """
+        params = {**_GET_RECORDS_REQUEST, 'startPosition': start_record + 1}
+        resp = await self.get_response(
+            session, self._csw_url, params
+        )
+        if not resp:
+            return
+        records_xml = etree.parse(BytesIO(await resp.content.read()))
+        opendap_elements = records_xml.getroot().findall(
+            './csw:SearchResults/csw:Record/dc:URI[@protocol="WWW:OPENDAP"]',
+            namespaces=CSW_NAMESPACES
+        )
+        for opendap_element in opendap_elements:
+            name = opendap_element.get('name')
+            title = opendap_element.getparent().find(
+                'dc:title',
+                namespaces=CSW_NAMESPACES
+            ).text
+            self.opendap_dataset_ids[name] = title
+
+    async def read_data_ids(self) -> None:
+        """
+        get csw records concurrently, obtain total_records first and then
+        iterate over the range of records in increments of
+        _RECORDS_PER_REQUEST.
+        """
+        tasks = []
+
+        async with aiohttp.ClientSession(
+                connector=aiohttp.TCPConnector(limit=50, force_close=True)
+        ) as session:
+            params = {**_GET_RECORDS_REQUEST, 'startPosition': '1',
+                      'maxRecords': '1'}
+            resp = await self.get_response(session, self._csw_url, params)
+            if resp:
+                records_xml = etree.parse(BytesIO(await resp.content.read()))
+                total_records_element = records_xml.getroot().find(
+                    './csw:SearchResults', namespaces=CSW_NAMESPACES)
+                total_records = int(total_records_element.get(
+                    'numberOfRecordsMatched')) \
+                    if total_records_element is not None else 0
+                if total_records > 0:
+                    for record in range(0, total_records, _RECORDS_PER_REQUEST):
+                        tasks.append(self.read_data_ids_from_csw_records
+                                     (record, session))
+                    await asyncio.gather(*tasks)
+
+    @cache
     def get_all_dataset_ids(self) -> Dict[str, Any]:
         """
         get all the opendap dataset ids by iterating through all CSW records
+        currently by using asyncio
         :return: Dictionary of opendap dataset ids
         """
-        csw = CatalogueServiceWeb(self._csw_url, timeout=60)
-        csw_rec = self.get_csw_records(csw, max_records=2000)
-        csw_obj_list = list(csw_rec.values())
-        for record in csw_obj_list:
-            if len(record.uris) > 0:
-                for uris in record.uris:
-                    if uris['protocol'] == 'WWW:OPENDAP':
-                        if uris['url']:
-                            opendap_uri = uris['url']
-                            scheme, netloc, path, query, fragment = \
-                                urlsplit(opendap_uri)
-                            split_paths = path.split('/')
-                            self.opendap_dataset_ids[split_paths[-1]] = \
-                                record.title
+        # Workaround for RuntimeError: event loop is already running for JNB
+        nest_asyncio.apply()
+        asyncio.run(self.read_data_ids())
         return self.opendap_dataset_ids
 
     def dataset_names(self) -> List[str]:
-        return self.get_all_dataset_ids().keys()
+        if self.opendap_dataset_ids:
+            return self.opendap_dataset_ids.keys()
+        else:
+            return self.get_all_dataset_ids().keys()

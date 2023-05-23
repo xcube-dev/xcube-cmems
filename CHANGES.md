@@ -6,6 +6,12 @@
 - Revised get_open_data_params logic to not open the dataset but only return 
   open_params without actual metadata. (#26)
 
+- Revised get_open_data_params logic to not open the dataset but only return open_params without actual metadata. (#26)
+
+- Improved the performance of get_data_ids method of the store by using 
+  package `aiohttp` to make parallel calls to CSW API. (#18)
+
+
 ## Changes in 0.1.1
 
 - Fixed a bug when opening dataset with bounding box. Now the following spatial coords naming 
