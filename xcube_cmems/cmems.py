@@ -22,7 +22,6 @@
 from typing import List, Dict, Any, Optional
 import os
 import logging
-import time
 import aiohttp
 import asyncio
 import lxml.etree as etree
