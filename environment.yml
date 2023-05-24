@@ -12,6 +12,8 @@ dependencies:
   - zarr
   - nest-asyncio
   - tenacity
+  - aiohttp
+  - asyncio
   # pinning the version to overwrite xcube versioning, remove after next xcube
   # release
   - gdal >=3.0,<3.6.3
