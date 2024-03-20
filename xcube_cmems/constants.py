@@ -19,10 +19,5 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-CAS_URL = 'https://cmems-cas.cls.fr/cas/login'
-ODAP_SERVER = "cmems-du.eu/thredds/dodsC/"
-DATABASE = ['nrt', 'my']
-CSW_URL = "https://cmems-catalog-ro.cls.fr/geonetwork/srv/eng/csw-MYOCEAN" \
-          "-CORE-PRODUCTS?"
 DATA_STORE_ID = 'cmems'
 DATASET_OPENER_ID = f'dataset:zarr:{DATA_STORE_ID}'

@@ -18,37 +18,78 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import pathlib
+
+import os
 
 import unittest
-
-from mock import patch
-
 from xcube_cmems.cmems import Cmems
-
-from .sample_data import get_all_dataset_results
+from unittest.mock import patch, MagicMock
+import xarray as xr
 
 
 class CmemsTest(unittest.TestCase):
 
-    def test_get_opendap_urls(self):
-        cmems = Cmems()
-        dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
-        urls = cmems.get_opendap_urls(dataset_id)
-        self.assertEqual('https://nrt.cmems-du.eu/thredds/dodsC/dataset-bal'
-                         '-analysis-forecast-wav-hourly', urls[0])
-        self.assertEqual('https://my.cmems-du.eu/thredds/dodsC/dataset-bal'
-                         '-analysis-forecast-wav-hourly', urls[1])
+    # the mocks the click.confirm function, process to confirm actions like
+    # overwriting files.
+    @patch('click.confirm', return_value=True)
+    def setUp(self, mock_confirm):
+        # Setup environment variables for testing
+        os.environ['CMEMS_USERNAME'] = 'testuser'
+        os.environ['CMEMS_PASSWORD'] = 'testpass'
+        self.configuration_file_directory = pathlib.Path.cwd()
 
-    @patch.object(Cmems, "get_all_dataset_ids")
-    def test_get_data_ids(self, mock_get_all_dataset_ids):
-        mock_get_all_dataset_ids.return_value = get_all_dataset_results()
+    @patch('click.confirm', return_value=True)
+    @patch('xcube_cmems.cmems.cm.describe')
+    def test_get_datasets_with_titles(self, mock_describe, mock_confirm):
+        # Mock the response from cm.describe
+        mock_describe.return_value = {
+            'products': [
+                {
+                    'title': 'Product A',
+                    'datasets': [{'dataset_id': 'dataset1'},
+                                 {'dataset_id': 'dataset2'}]
+                },
+                {
+                    'title': 'Product B',
+                    'datasets': [{'dataset_id': 'dataset3'}]
+                }
+            ]
+        }
         cmems = Cmems()
-        self.assertEqual(520, len(cmems.get_all_dataset_ids()))
+        datasets_info = cmems.get_datasets_with_titles()
 
-    @patch.object(Cmems, "dataset_names")
-    def test_get_dataset_names(self, mock_dataset_names):
+        # Expected result based on the mocked describe response
+        expected_result = [
+            {'title': 'Product A', 'dataset_id': 'dataset1'},
+            {'title': 'Product A', 'dataset_id': 'dataset2'},
+            {'title': 'Product B', 'dataset_id': 'dataset3'}
+        ]
+
+        self.assertEqual(datasets_info, expected_result)
+
+    @patch('click.confirm', return_value=True)
+    @patch('xcube_cmems.cmems.cm.open_dataset')
+    def test_open_dataset(self, mock_open_dataset, mock_confirm):
+        # Mock the response from cm.open_dataset
+        mock_dataset = MagicMock()
+        mock_open_dataset.return_value = mock_dataset
+        cmems_instance = Cmems(
+            configuration_file_directory=self.configuration_file_directory)
+
+        result = cmems_instance.open_dataset('dataset1')
+        self.assertEqual(result, mock_dataset)
+
+        # Testing with a non-existing dataset
+        mock_open_dataset.side_effect = KeyError("Dataset not found")
+        result = cmems_instance.open_dataset('non_existing_dataset')
+        self.assertIsNone(result)
+
+
+    @patch('click.confirm', return_value=True)
+    def test_open_data_for_not_exsiting_dataset(self, mock_confirm):
         cmems = Cmems()
-        dataset_dict = get_all_dataset_results()
-        mock_dataset_names.return_value = dataset_dict.keys()
-        self.assertEqual(520, len(cmems.dataset_names()))
-
+        self.assertIsNone(cmems.open_dataset('dataset-bal-analysis-forecast'
+                                             '-wav-hourly'),
+                          "Expected the method to return None for a "
+                          "non-existing dataset")

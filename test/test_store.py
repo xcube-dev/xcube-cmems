@@ -24,39 +24,72 @@ import unittest
 import xarray as xr
 import xcube.core.store.descriptor as xcube_des
 from xcube.util.jsonschema import JsonObjectSchema
-from mock import patch
+from xcube_cmems.constants import DATASET_OPENER_ID
 
-from xcube_cmems.cmems import Cmems
 from xcube_cmems.store import CmemsDatasetOpener
-from xcube_cmems.store import CmemsDataOpener
 from xcube_cmems.store import CmemsDataStore
 
 from .sample_data import create_cmems_dataset
-from .sample_data import get_all_dataset_results
+from unittest.mock import patch, MagicMock
+from datetime import datetime, timedelta
 
 
 class CmemsDataOpenerTest(unittest.TestCase):
 
-    def setUp(self) -> None:
-        self.dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
-        self.opener = CmemsDatasetOpener()
+    @patch('click.confirm', return_value=True)
+    def setUp(self, mock_confirm) -> None:
+        with patch('click.confirm', return_value=True):
+            self.dataset_id = "cmems_mod_arc_bgc_anfc_ecosmo_P1D-m"
+            self.opener = CmemsDatasetOpener()
 
-    @patch.object(CmemsDataOpener, "open_dataset")
-    def test_open_data_with_no_cube_params(self, mock_open_dataset):
-        mock_open_dataset.return_value = create_cmems_dataset()
-        mocked_ds = self.opener.open_data(self.dataset_id)
-        self.assertIsInstance(mocked_ds, xr.Dataset)
-        self.assertEqual(8, mocked_ds.dims['time'])
-        self.assertEqual(2, len(mocked_ds.data_vars))
-        self.assertTrue('VHM0' in mocked_ds.data_vars)
+    @patch('xcube_cmems.cmems.cm.open_dataset')
+    def test_subset_cube_with_open_params(self, mock_open_dataset):
+        start_date = datetime.now()
+        end_date = start_date + timedelta(days=7)
+        dataset_id = "test_dataset"
+        mock_open_dataset.return_value = xr.Dataset()
+        open_params = {
+            "time_range": (start_date, end_date),
+            "bbox": (-10, -20, 10, 20),
+            "variable_names": ["var1", "var2"]
+        }
+        result = self.opener.subset_cube_with_open_params(dataset_id,
+                                                          **open_params)
+        mock_open_dataset.assert_called_once_with(dataset_id=dataset_id,
+                                                  start_datetime=start_date,
+                                                  end_datetime=end_date,
+                                                  minimum_longitude=-10,
+                                                  minimum_latitude=-20,
+                                                  maximum_longitude=10,
+                                                  maximum_latitude=20,
+                                                  variables=["var1", "var2"])
+        assert isinstance(result, xr.Dataset)
 
-    @patch.object(CmemsDataOpener, "open_dataset")
+    @patch('xcube_cmems.store.CmemsDataOpener.subset_cube_with_open_params')
+    @patch('xcube_cmems.store.CmemsDataOpener.get_open_data_params_schema')
+    def test_open_data(self, mock_get_schema, mock_subset_cube):
+        data_id = "data_id"
+        mock_subset_cube.return_value = xr.Dataset()
+        schema = MagicMock()
+        schema.validate_instance = MagicMock()
+        schema.process_kwargs_subset = MagicMock(return_value=({}, {}))
+        mock_get_schema.return_value = schema
+
+        result = self.opener.open_data(data_id)
+
+        mock_get_schema.assert_called_once_with(data_id)
+        schema.validate_instance.assert_called_once()
+        schema.process_kwargs_subset.assert_called_once()
+        mock_subset_cube.assert_called_once_with(data_id, **{})
+        assert isinstance(result, xr.Dataset)
+
+    @patch('xcube_cmems.cmems.cm.open_dataset')
     def test_describe_data(self, mock_open_dataset):
         mock_open_dataset.return_value = create_cmems_dataset()
         data_des = self.opener.describe_data(self.dataset_id)
         self.assertIsInstance(data_des, xcube_des.DatasetDescriptor)
         self.assertEqual(('2022-01-01', '2022-01-08'), data_des.time_range)
-        self.assertEqual('dataset-bal-analysis-forecast-wav-hourly',
+        self.assertEqual('cmems_mod_arc_bgc_anfc_ecosmo_P1D-m',
                          data_des.data_id)
         self.assertEqual(('time', 'lat', 'lon'),
                          data_des.data_vars.get('VHM0').dims)
@@ -73,29 +106,53 @@ class CmemsDataOpenerTest(unittest.TestCase):
         self.assertEqual('1D', data_des.time_period)
 
 
+
 class CmemsDataStoreTest(unittest.TestCase):
 
-    def setUp(self) -> None:
-        self.dataset_id = "dataset-bal-analysis-forecast-wav-hourly"
+    @patch('click.confirm', return_value=True)
+    def setUp(self, mock_confirm) -> None:
+        self.dataset_id = "cmems_mod_arc_bgc_anfc_ecosmo_P1D-m"
+        self.mock_datasets = [
+            {'dataset_id': 'id1', 'title': 'Title 1'},
+            {'dataset_id': 'id2', 'title': 'Title 2'}
+        ]
         self.datastore = CmemsDataStore()
 
-    @patch.object(Cmems, "get_all_dataset_ids")
-    def test_get_data_ids(self, mock_get_all_dataset_ids):
-        mock_get_all_dataset_ids.return_value = get_all_dataset_results()
-        dataset_ids = self.datastore.get_data_ids()
-        dataset_ids = list(dataset_ids)
-        self.assertEqual(520, len(dataset_ids))
-        self.assertTrue("dataset-bal-analysis-forecast-wav-hourly" in
-                        dataset_ids)
-        self.assertTrue("MetO-NWS-PHY-qh-SSH" in dataset_ids)
+    @patch('xcube_cmems.cmems.Cmems.get_datasets_with_titles')
+    def test_get_data_ids_without_include_attrs(self, mock_get_datasets):
+        mock_get_datasets.return_value = self.mock_datasets
 
-    @patch.object(CmemsDataOpener, "open_dataset")
+        expected_result = ['id1', 'id2']
+        result = list(self.datastore.get_data_ids())
+
+        self.assertEqual(result, expected_result)
+
+    @patch('xcube_cmems.cmems.Cmems.get_datasets_with_titles')
+    def test_get_data_ids_with_empty_attrs(self, mock_get_datasets):
+        mock_get_datasets.return_value = self.mock_datasets
+
+        expected_result = [('id1', {}), ('id2', {})]
+        result = list(self.datastore.get_data_ids(include_attrs=[]))
+
+        self.assertEqual(result, expected_result)
+
+    @patch('xcube_cmems.cmems.Cmems.get_datasets_with_titles')
+    def test_get_data_ids_with_title_in_attrs(self, mock_get_datasets):
+        mock_get_datasets.return_value = self.mock_datasets
+
+        expected_result = [('id1', {'title': 'Title 1'}),
+                           ('id2', {'title': 'Title 2'})]
+        result = list(self.datastore.get_data_ids(include_attrs=['title']))
+
+        self.assertEqual(result, expected_result)
+
+    @patch('xcube_cmems.cmems.cm.open_dataset')
     def test_describe_data(self, mock_open_dataset):
         mock_open_dataset.return_value = create_cmems_dataset()
         data_des = self.datastore.describe_data(self.dataset_id)
         self.assertIsInstance(data_des, xcube_des.DatasetDescriptor)
         self.assertEqual(('2022-01-01', '2022-01-08'), data_des.time_range)
-        self.assertEqual('dataset-bal-analysis-forecast-wav-hourly',
+        self.assertEqual('cmems_mod_arc_bgc_anfc_ecosmo_P1D-m',
                          data_des.data_id)
         self.assertEqual(('time', 'lat', 'lon'),
                          data_des.data_vars.get('VHM0').dims)
@@ -111,35 +168,17 @@ class CmemsDataStoreTest(unittest.TestCase):
         self.assertEqual('WGS 84', data_des.crs)
         self.assertEqual('1D', data_des.time_period)
 
-    @patch.object(CmemsDataOpener, "open_dataset")
-    def test_open_data_with_cube_params(self, mock_open_dataset):
-        mock_open_dataset.return_value = create_cmems_dataset()
+    @patch('xcube_cmems.cmems.cm.open_dataset')
+    def test_open_data_with_cube_params(self, mock_open_data):
+        mock_open_data.return_value = create_cmems_dataset()
         mocked_ds = self.datastore.open_data(self.dataset_id,
                                              variable_names=['VHM0'],
                                              time_range=('2022-01-01',
                                                          '2022-01-03'))
         self.assertIsInstance(mocked_ds, xr.Dataset)
-        self.assertEqual(3, mocked_ds.dims['time'])
-        self.assertEqual(1, len(mocked_ds.data_vars))
+        self.assertEqual(8, mocked_ds.dims['time'])
+        self.assertEqual(2, len(mocked_ds.data_vars))
         self.assertTrue('VHM0' in mocked_ds.data_vars)
-
-    def test_open_data_with_bbox_with_lat_lon_dim(self):
-        ds = self.datastore.open_data(
-            "SST_MED_SST_L3S_NRT_OBSERVATIONS_010_012_a"
-            , bbox=[9, 40, 10, 46])
-        self.assertIsInstance(ds, xr.Dataset)
-        self.assertTrue('lat' in ds.dims)
-        self.assertEqual(97, ds.dims['lat'])
-        self.assertTrue('lon' in ds.dims)
-        self.assertEqual(17, ds.dims['lon'])
-
-    def test_open_data_with_bbox_with_latitude_longitude_dim(self):
-        ds = self.datastore.open_data("cmems_mod_glo_wav_anfc_0.083deg_PT3H-i"
-                                      , bbox=[9, 53, 10, 54])
-        self.assertIsInstance(ds, xr.Dataset)
-        self.assertTrue(True, 'latitude' in ds.dims.mapping)
-        self.assertEqual(13, ds.dims['latitude'])
-        self.assertEqual(13, ds.dims['longitude'])
 
     def test_get_open_data_params(self):
         open_params = self.datastore.get_open_data_params_schema(
@@ -149,12 +188,18 @@ class CmemsDataStoreTest(unittest.TestCase):
     def test_get_data_types(self):
         self.assertEqual(('dataset',), self.datastore.get_data_types())
 
-    @patch.object(Cmems, "dataset_names")
-    def test_has_data(self, mock_dataset_names):
-        dataset_dict = get_all_dataset_results()
-        mock_dataset_names.return_value = dataset_dict.keys()
-        self.assertEqual(True, self.datastore.has_data(self.dataset_id))
+    def test_get_data_opener_ids_with_valid_data_id(self):
+        self.datastore.has_data = MagicMock(return_value=True)
+        data_id = 'valid_data_id'
+        data_type = 'dataset'
+        expected = (DATASET_OPENER_ID,)
 
+        result = self.datastore.get_data_opener_ids(data_id=data_id,
+                                                         data_type=data_type)
+
+        assert result == expected
+        self.datastore.has_data.assert_called_once_with(data_id,
+                                                             data_type=data_type)
 
 class CmemsDataStoreParamsTest(unittest.TestCase):
 

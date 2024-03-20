@@ -78,12 +78,7 @@ def create_cmems_dataset():
                           'geospatial_lat_step': 0.08333588,
                           'geospatial_lat_units': 'degree',
                           "time_coverage_start": "2022-01-01T10:59:38.888000Z",
-                          "time_coverage_end": "2022-01-08T10:59:38.888000Z"
+                          "time_coverage_end": "2022-01-08T10:59:38.888000Z",
+                          "crs": {'name': 'EPSG:4326'}
                       })
 
-
-def get_all_dataset_results():
-    json_path = os.path.join(os.getcwd() + "/test/dataset_ids.json")
-    with open(json_path, 'r') as j:
-        contents = json.loads(j.read())
-    return contents
