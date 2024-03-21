@@ -1,0 +1,64 @@
+[build-system]
+requires = [
+  "setuptools >= 40.9.0",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xcube-cmems"
+dynamic = ["version"]
+authors = [
+  {name = "Tejas Morbagal Harish", email = "tejas.morbagalharish@brockmann-consult.de"}
+]
+description = """\
+  xcube datastore for accessing cmems datastore\
+  """
+keywords = [
+  "analysis ready data", "data science", "datacube", "xarray", "zarr", "xcube", "cmems"
+]
+readme = {file = "README.md", content-type = "text/markdown"}
+license = {text = "MIT"}
+requires-python = ">=3.10"
+dependencies = [
+# xcube-core leads to ERROR: Could not find a version that satisfies the requirement
+# matplotlib-base>=3 ERROR: No matching distribution found for matplotlib-base>=3.0
+#    "xcube-core",
+    "copernicusmarine",
+    "numpy",
+    "pandas",
+    "xarray",
+    "zarr"
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "xcube_cmems.__version__"}
+
+[tool.setuptools.packages.find]
+exclude = [
+  "test*",
+  "doc*",
+  "site*",
+  "htmlcov*"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "pytest-cov",
+  "black",
+  "flake8",
+  "flake8-bugbear",
+    "pathlib"
+]
+doc = [
+  "mkdocs",
+  "mkdocs-material",
+  "mkdocstrings",
+  "mkdocstrings-python"
+]
+
+[project.urls]
+Documentation = "https://dcs4cop.github.io/xcube-cmems/"
+Issues = "hhttps://github.com/dcs4cop/xcube-cmems/issues"
+Changelog = "https://github.com/dcs4cop/xcube-cmems/blob/main/CHANGES.md"
+Repository = "https://github.com/dcs4cop/xcube-cmems"
