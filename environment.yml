@@ -7,7 +7,14 @@ dependencies:
   - copernicusmarine
   - xcube >=0.12.1
   - zarr
+  - numpy
+  - pandas
+  - xarray
+  - zarr
   # for testing
   - mock
   - pytest
+  - black
+  - flake8
+  - pathlib
 
