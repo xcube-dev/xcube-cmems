@@ -1,3 +1,9 @@
+## Changes in 0.1.3
+
+- Changed the implementation to use the new cmems toolbox api
+
+- Moved project configuration to `pyproject.toml`
+
 ## Changes in 0.1.2 
 
 - Addressed initialization of cmems credentials from environment variables conditionally
