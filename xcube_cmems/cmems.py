@@ -28,54 +28,69 @@ import xarray as xr
 
 class Cmems:
 
-    def __init__(self,
-                 cmems_username: Optional[str] = None,
-                 cmems_password: Optional[str] = None,
-                 configuration_file_directory=pathlib.Path.cwd()
-                 ):
-        self.cmems_username = cmems_username if cmems_username is not None \
-            else os.getenv('CMEMS_USERNAME')
-        self.cmems_password = cmems_password if cmems_password is not None \
-            else os.getenv('CMEMS_PASSWORD')
+    def __init__(
+        self,
+        cmems_username: Optional[str] = None,
+        cmems_password: Optional[str] = None,
+        configuration_file_directory=pathlib.Path.cwd(),
+    ):
+        self.cmems_username = (
+            cmems_username
+            if cmems_username is not None
+            else os.getenv("CMEMS_USERNAME")
+        )
+        self.cmems_password = (
+            cmems_password
+            if cmems_password is not None
+            else os.getenv("CMEMS_PASSWORD")
+        )
 
         if not self.cmems_username or not self.cmems_password:
-            raise ValueError('CmemsDataStore needs cmems credentials in '
-                             'environment variables CMEMS_USERNAME and '
-                             'CMEMS_PASSWORD or to be '
-                             'provided as store params cmems_username and '
-                             'cmems_password')
-        cm.login(username=self.cmems_username, password=self.cmems_password,
-                 configuration_file_directory=configuration_file_directory)
+            raise ValueError(
+                "CmemsDataStore needs cmems credentials in "
+                "environment variables CMEMS_USERNAME and "
+                "CMEMS_PASSWORD or to be "
+                "provided as store params cmems_username and "
+                "cmems_password"
+            )
+        cm.login(
+            username=self.cmems_username,
+            password=self.cmems_password,
+            configuration_file_directory=configuration_file_directory,
+        )
 
     @classmethod
     def get_datasets_with_titles(cls) -> List[dict]:
         catalogue: dict = cm.describe(include_datasets=True)
         datasets_info: List[dict] = []
-        for product in catalogue['products']:
-            product_title = product['title']  # Fetch the product title
-            for dataset in product['datasets']:
-                dataset_id: str = dataset['dataset_id']
+        for product in catalogue["products"]:
+            product_title = product["title"]  # Fetch the product title
+            for dataset in product["datasets"]:
+                dataset_id: str = dataset["dataset_id"]
                 # Append both title and dataset_id in a dictionary format
-                datasets_info.append(
-                    {'title': product_title, 'dataset_id': dataset_id})
+                datasets_info.append({"title": product_title, "dataset_id": dataset_id})
         return datasets_info
 
     def open_dataset(self, data_id) -> xr.Dataset:
         try:
-            ds = cm.open_dataset(dataset_id=data_id,
-                                 username=self.cmems_username,
-                                 password=self.cmems_password)
+            ds = cm.open_dataset(
+                dataset_id=data_id,
+                username=self.cmems_username,
+                password=self.cmems_password,
+            )
             return ds
         except KeyError as e:
             # Handle the case where the dataset ID was not found
             print(f"Error: {e}.")
             print(
                 f"The dataset '{data_id}' was not found in the Copernicus "
-                f"Marine catalogue.")
+                f"Marine catalogue."
+            )
             print(
                 "Please check the dataset ID for typos or use the "
                 "'get_dataset_ids' command to list for available "
-                "datasets.")
+                "datasets."
+            )
             return None
         except Exception as e:
             # Handle other potential exceptions

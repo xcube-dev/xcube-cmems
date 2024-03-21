@@ -19,41 +19,38 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import pathlib
-
 import os
-
 import unittest
+
 from xcube_cmems.cmems import Cmems
 from unittest.mock import patch, MagicMock
-import xarray as xr
 
 
 class CmemsTest(unittest.TestCase):
 
     # the mocks the click.confirm function, process to confirm actions like
     # overwriting files.
-    @patch('click.confirm', return_value=True)
+    @patch("click.confirm", return_value=True)
     def setUp(self, mock_confirm):
         # Setup environment variables for testing
-        os.environ['CMEMS_USERNAME'] = 'testuser'
-        os.environ['CMEMS_PASSWORD'] = 'testpass'
+        os.environ["CMEMS_USERNAME"] = "testuser"
+        os.environ["CMEMS_PASSWORD"] = "testpass"
         self.configuration_file_directory = pathlib.Path.cwd()
 
-    @patch('click.confirm', return_value=True)
-    @patch('xcube_cmems.cmems.cm.describe')
+    @patch("click.confirm", return_value=True)
+    @patch("xcube_cmems.cmems.cm.describe")
     def test_get_datasets_with_titles(self, mock_describe, mock_confirm):
         # Mock the response from cm.describe
         mock_describe.return_value = {
-            'products': [
+            "products": [
                 {
-                    'title': 'Product A',
-                    'datasets': [{'dataset_id': 'dataset1'},
-                                 {'dataset_id': 'dataset2'}]
+                    "title": "Product A",
+                    "datasets": [
+                        {"dataset_id": "dataset1"},
+                        {"dataset_id": "dataset2"},
+                    ],
                 },
-                {
-                    'title': 'Product B',
-                    'datasets': [{'dataset_id': 'dataset3'}]
-                }
+                {"title": "Product B", "datasets": [{"dataset_id": "dataset3"}]},
             ]
         }
         cmems = Cmems()
@@ -61,35 +58,35 @@ class CmemsTest(unittest.TestCase):
 
         # Expected result based on the mocked describe response
         expected_result = [
-            {'title': 'Product A', 'dataset_id': 'dataset1'},
-            {'title': 'Product A', 'dataset_id': 'dataset2'},
-            {'title': 'Product B', 'dataset_id': 'dataset3'}
+            {"title": "Product A", "dataset_id": "dataset1"},
+            {"title": "Product A", "dataset_id": "dataset2"},
+            {"title": "Product B", "dataset_id": "dataset3"},
         ]
 
         self.assertEqual(datasets_info, expected_result)
 
-    @patch('click.confirm', return_value=True)
-    @patch('xcube_cmems.cmems.cm.open_dataset')
+    @patch("click.confirm", return_value=True)
+    @patch("xcube_cmems.cmems.cm.open_dataset")
     def test_open_dataset(self, mock_open_dataset, mock_confirm):
         # Mock the response from cm.open_dataset
         mock_dataset = MagicMock()
         mock_open_dataset.return_value = mock_dataset
         cmems_instance = Cmems(
-            configuration_file_directory=self.configuration_file_directory)
+            configuration_file_directory=self.configuration_file_directory
+        )
 
-        result = cmems_instance.open_dataset('dataset1')
+        result = cmems_instance.open_dataset("dataset1")
         self.assertEqual(result, mock_dataset)
 
         # Testing with a non-existing dataset
         mock_open_dataset.side_effect = KeyError("Dataset not found")
-        result = cmems_instance.open_dataset('non_existing_dataset')
+        result = cmems_instance.open_dataset("non_existing_dataset")
         self.assertIsNone(result)
 
-
-    @patch('click.confirm', return_value=True)
+    @patch("click.confirm", return_value=True)
     def test_open_data_for_not_exsiting_dataset(self, mock_confirm):
         cmems = Cmems()
-        self.assertIsNone(cmems.open_dataset('dataset-bal-analysis-forecast'
-                                             '-wav-hourly'),
-                          "Expected the method to return None for a "
-                          "non-existing dataset")
+        self.assertIsNone(
+            cmems.open_dataset("dataset-bal-analysis-forecast" "-wav-hourly"),
+            "Expected the method to return None for a " "non-existing dataset",
+        )
