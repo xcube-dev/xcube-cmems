@@ -1,6 +1,6 @@
 ## Changes in 0.1.3
 
-- Changed the implementation to use the new cmems toolbox api
+- Changed the implementation to use the new cmems toolbox api (#31)
 
 - Moved project configuration to `pyproject.toml`
 
