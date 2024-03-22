@@ -19,10 +19,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import os
 import pathlib
 from typing import List, Optional
+
 import copernicusmarine as cm
-import os
 import xarray as xr
 
 

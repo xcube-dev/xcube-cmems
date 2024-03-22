@@ -29,21 +29,12 @@ import copernicusmarine as cm
 
 from xarray.core.dataset import DataVariables
 from xcube.core.gridmapping import GridMapping
-from xcube.core.store import DataType
-from xcube.core.store import DataStoreError
-from xcube.core.store import DATASET_TYPE
-from xcube.core.store import DataDescriptor
-from xcube.core.store import DataOpener
-from xcube.core.store import DataStore
-from xcube.core.store import DataTypeLike
-from xcube.core.store import DatasetDescriptor
-from xcube.core.store import VariableDescriptor
+from xcube.core.store import (DATASET_TYPE, DataDescriptor, DataOpener, DataStore,
+                              DataStoreError, DataType, DataTypeLike, DatasetDescriptor,
+                              VariableDescriptor)
 from xcube.util.assertions import assert_not_none
-from xcube.util.jsonschema import JsonObjectSchema
-from xcube.util.jsonschema import JsonNumberSchema
-from xcube.util.jsonschema import JsonArraySchema
-from xcube.util.jsonschema import JsonStringSchema
-from xcube.util.jsonschema import JsonDateSchema
+from xcube.util.jsonschema import (JsonArraySchema, JsonDateSchema, JsonNumberSchema,
+                                   JsonObjectSchema, JsonStringSchema)
 
 from .cmems import Cmems
 from .constants import DATASET_OPENER_ID
@@ -146,7 +137,6 @@ class CmemsDataOpener(DataOpener):
         if "variable_names" in open_params:
             params["variables"] = open_params["variable_names"]
 
-        # Call cm.open_dataset with the constructed parameters
         return cm.open_dataset(dataset_id=dataset_id, **params)
 
     def open_data(self, data_id: str, **open_params) -> xr.Dataset:
