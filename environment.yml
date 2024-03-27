@@ -5,16 +5,19 @@ channels:
 dependencies:
   # Required
   - copernicusmarine
-  - xcube >=0.12.1
-  - zarr
   - numpy
   - pandas
   - xarray
+  - xcube >=0.12.1
   - zarr
   # for testing
-  - mock
-  - pytest
   - black
   - flake8
+  - mock
   - pathlib
+  - pytest
+
+
+
+
 
