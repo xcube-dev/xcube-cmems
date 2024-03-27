@@ -48,9 +48,10 @@ class Cmems:
 
         if not self.cmems_username or not self.cmems_password:
             raise ValueError(
-                "CmemsDataStore needs cmems credentials in "
+                "CmemsDataStore needs cmems credentials to 
+                "be provided either as "
                 "environment variables CMEMS_USERNAME and "
-                "CMEMS_PASSWORD or to be "
+                "CMEMS_PASSWORD, or to be "
                 "provided as store params cmems_username and "
                 "cmems_password"
             )
