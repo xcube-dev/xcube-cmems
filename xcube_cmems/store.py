@@ -215,7 +215,7 @@ class CmemsDataStore(DataStore):
             ),
             cmems_password=JsonStringSchema(
                 title="CMEMS User Password",
-                description="Preferably set by environment " "variable CMEMS_PASSWORD",
+                description="Preferably set by environment variable CMEMS_PASSWORD",
             ),
         )
         return JsonObjectSchema(
