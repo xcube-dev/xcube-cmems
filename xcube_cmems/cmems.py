@@ -90,7 +90,7 @@ class Cmems:
             )
             print(
                 "Please check the dataset ID for typos or use the "
-                "'get_dataset_ids' command to list for available "
+                "'get_dataset_ids' command to list the available "
                 "datasets."
             )
             return None
