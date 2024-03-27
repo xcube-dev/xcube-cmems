@@ -211,7 +211,7 @@ class CmemsDataStore(DataStore):
         cmems_params = dict(
             cmems_username=JsonStringSchema(
                 title="CMEMS Username",
-                description="Preferably set by environment variable " "CMEMS_USERNAME ",
+                description="Preferably set by environment variable CMEMS_USERNAME ",
             ),
             cmems_password=JsonStringSchema(
                 title="CMEMS User Password",
