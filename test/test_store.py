@@ -201,10 +201,11 @@ class CmemsDataStoreParamsTest(unittest.TestCase):
         with self.assertRaises(Exception) as e:
             CmemsDataStore(**params)
         self.assertEqual(
-            "CmemsDataStore needs cmems credentials in "
-            "environment variables "
-            "CMEMS_USERNAME and CMEMS_PASSWORD or to "
-            "be provided as store params cmems_username "
-            "and cmems_password",
+            "CmemsDataStore needs cmems credentials to "
+                "be provided either as "
+                "environment variables CMEMS_USERNAME and "
+                "CMEMS_PASSWORD, or to be "
+                "provided as store params cmems_username and "
+                "cmems_password",
             f"{e.exception}",
         )
