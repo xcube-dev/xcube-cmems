@@ -286,7 +286,7 @@ class CmemsDataStore(DataStore):
     def search_data(
         self, data_type: DataTypeLike = None, **search_params
     ) -> Iterator[DataDescriptor]:
-        raise NotImplementedError("search_data() operation is not " "supported yet")
+        raise NotImplementedError("search_data() operation is not supported yet")
 
     @classmethod
     def get_search_params_schema(
