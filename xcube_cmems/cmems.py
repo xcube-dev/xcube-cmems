@@ -48,7 +48,7 @@ class Cmems:
 
         if not self.cmems_username or not self.cmems_password:
             raise ValueError(
-                "CmemsDataStore needs cmems credentials to 
+                "CmemsDataStore needs cmems credentials to "
                 "be provided either as "
                 "environment variables CMEMS_USERNAME and "
                 "CMEMS_PASSWORD, or to be "
@@ -66,10 +66,9 @@ class Cmems:
         catalogue: dict = cm.describe(include_datasets=True)
         datasets_info: List[dict] = []
         for product in catalogue["products"]:
-            product_title = product["title"]  # Fetch the product title
+            product_title = product["title"]
             for dataset in product["datasets"]:
                 dataset_id: str = dataset["dataset_id"]
-                # Append both title and dataset_id in a dictionary format
                 datasets_info.append({"title": product_title, "dataset_id": dataset_id})
         return datasets_info
 
@@ -82,7 +81,6 @@ class Cmems:
             )
             return ds
         except KeyError as e:
-            # Handle the case where the dataset ID was not found
             print(f"Error: {e}.")
             print(
                 f"The dataset '{data_id}' was not found in the Copernicus "
@@ -95,6 +93,5 @@ class Cmems:
             )
             return None
         except Exception as e:
-            # Handle other potential exceptions
             print(f"An unexpected error occurred: {e}")
             return None
