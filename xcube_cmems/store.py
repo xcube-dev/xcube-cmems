@@ -25,7 +25,6 @@ import logging
 import xarray as xr
 import numpy as np
 import pandas as pd
-import copernicusmarine as cm
 
 from xarray.core.dataset import DataVariables
 from xcube.core.gridmapping import GridMapping
@@ -129,15 +128,12 @@ class CmemsDataOpener(DataOpener):
         descriptor.open_params_schema = data_schema
         return descriptor
 
-    @staticmethod
-    def subset_cube_with_open_params(dataset_id, **open_params) -> xr.Dataset:
+    def subset_cube_with_open_params(self, dataset_id, **open_params) -> xr.Dataset:
         params = {}
 
-        # Process time_range if present
         if "time_range" in open_params:
             params["start_datetime"], params["end_datetime"] = open_params["time_range"]
 
-        # Process bbox if present
         if "bbox" in open_params:
             (
                 params["minimum_longitude"],
@@ -146,11 +142,10 @@ class CmemsDataOpener(DataOpener):
                 params["maximum_latitude"],
             ) = open_params["bbox"]
 
-        # Process variable_names if present
         if "variable_names" in open_params:
             params["variables"] = open_params["variable_names"]
 
-        return cm.open_dataset(dataset_id=dataset_id, **params)
+        return self.cmems.open_dataset(dataset_id=dataset_id, **params)
 
     def open_data(self, data_id: str, **open_params) -> xr.Dataset:
         assert_not_none(data_id)

@@ -59,6 +59,7 @@ class Cmems:
             username=self.cmems_username,
             password=self.cmems_password,
             configuration_file_directory=configuration_file_directory,
+            overwrite_configuration_file=True
         )
 
     @classmethod
@@ -72,18 +73,20 @@ class Cmems:
                 datasets_info.append({"title": product_title, "dataset_id": dataset_id})
         return datasets_info
 
-    def open_dataset(self, data_id) -> xr.Dataset:
+    def open_dataset(self, dataset_id, **open_params) -> xr.Dataset:
         try:
+
             ds = cm.open_dataset(
-                dataset_id=data_id,
+                dataset_id=dataset_id,
                 username=self.cmems_username,
                 password=self.cmems_password,
+                **open_params,
             )
             return ds
         except KeyError as e:
             print(f"Error: {e}.")
             print(
-                f"The dataset '{data_id}' was not found in the Copernicus "
+                f"The dataset '{dataset_id}' was not found in the Copernicus "
                 f"Marine catalogue."
             )
             print(

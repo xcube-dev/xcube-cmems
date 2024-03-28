@@ -41,7 +41,7 @@ class CmemsDataOpenerTest(unittest.TestCase):
             self.dataset_id = "cmems_mod_arc_bgc_anfc_ecosmo_P1D-m"
             self.opener = CmemsDatasetOpener()
 
-    @patch("xcube_cmems.cmems.cm.open_dataset")
+    @patch("xcube_cmems.cmems.Cmems.open_dataset")
     def test_subset_cube_with_open_params(self, mock_open_dataset):
         start_date = datetime.now()
         end_date = start_date + timedelta(days=7)
@@ -202,10 +202,10 @@ class CmemsDataStoreParamsTest(unittest.TestCase):
             CmemsDataStore(**params)
         self.assertEqual(
             "CmemsDataStore needs cmems credentials to "
-                "be provided either as "
-                "environment variables CMEMS_USERNAME and "
-                "CMEMS_PASSWORD, or to be "
-                "provided as store params cmems_username and "
-                "cmems_password",
+            "be provided either as "
+            "environment variables CMEMS_USERNAME and "
+            "CMEMS_PASSWORD, or to be "
+            "provided as store params cmems_username and "
+            "cmems_password",
             f"{e.exception}",
         )
