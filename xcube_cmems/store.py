@@ -65,11 +65,11 @@ class CmemsDataOpener(DataOpener):
         self._id = id
         self._data_type = data_type
 
-    def dataset_names(self) -> List[dict]:
+    def dataset_with_titles(self) -> List[dict]:
         return self.cmems.get_datasets_with_titles()
 
     def has_data(self, data_id: str) -> bool:
-        return data_id in self.dataset_names()
+        return data_id in self.dataset_with_titles()
 
     @staticmethod
     def _get_var_descriptors(
