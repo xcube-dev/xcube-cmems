@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-  "setuptools >= 40.9.0",
+  "setuptools >= 61.2.0",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -30,6 +30,9 @@ dependencies = [
 
 [tool.setuptools.dynamic]
 version = {attr = "xcube_cmems.__version__"}
+
+[project.entry-points.xcube_plugins]
+xcube_cmems = "xcube_cmems.plugin:init_plugin"
 
 [tool.setuptools.packages.find]
 exclude = [
