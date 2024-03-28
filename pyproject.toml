@@ -20,9 +20,7 @@ readme = {file = "README.md", content-type = "text/markdown"}
 license = {text = "MIT"}
 requires-python = ">=3.10"
 dependencies = [
-# xcube-core leads to ERROR: Could not find a version that satisfies the requirement
-# matplotlib-base>=3 ERROR: No matching distribution found for matplotlib-base>=3.0
-#    "xcube-core",
+    # Todo: add xcube-core when issue with matplotlib-base is solved
     "copernicusmarine",
     "numpy",
     "pandas",
