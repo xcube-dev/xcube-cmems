@@ -28,16 +28,14 @@ from xcube_cmems.constants import DATA_STORE_ID
 
 def init_plugin(ext_registry: extension.ExtensionRegistry):
     ext_registry.add_extension(
-        loader=extension.import_component(
-            'xcube_cmems.store:CmemsDataStore'),
+        loader=extension.import_component("xcube_cmems.store:CmemsDataStore"),
         point=EXTENSION_POINT_DATA_STORES,
         name=DATA_STORE_ID,
-        description='Cmems DataStore',
+        description="Cmems DataStore",
     )
     ext_registry.add_extension(
-        loader=extension.import_component(
-            'xcube_cmems.store:CmemsDatasetOpener'),
+        loader=extension.import_component("xcube_cmems.store:CmemsDatasetOpener"),
         point=EXTENSION_POINT_DATA_OPENERS,
         name=DATASET_OPENER_ID,
-        description='xarray.Dataset from CMEMS API'
+        description="xarray.Dataset from CMEMS API",
     )

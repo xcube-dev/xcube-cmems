@@ -1,0 +1,65 @@
+[build-system]
+requires = [
+  "setuptools >= 61.2.0",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xcube-cmems"
+dynamic = ["version"]
+authors = [
+  {name = "Tejas Morbagal Harish", email = "tejas.morbagalharish@brockmann-consult.de"}
+]
+description = """\
+  xcube datastore for accessing cmems datastore\
+  """
+keywords = [
+  "analysis ready data", "data science", "datacube", "xarray", "zarr", "xcube", "cmems"
+]
+readme = {file = "README.md", content-type = "text/markdown"}
+license = {text = "MIT"}
+requires-python = ">=3.10"
+dependencies = [
+    # Todo: add xcube-core when issue with matplotlib-base is solved
+    "copernicusmarine",
+    "numpy",
+    "pandas",
+    "xarray",
+    "zarr"
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "xcube_cmems.__version__"}
+
+[project.entry-points.xcube_plugins]
+xcube_cmems = "xcube_cmems.plugin:init_plugin"
+
+[tool.setuptools.packages.find]
+exclude = [
+  "test*",
+  "doc*",
+  "site*",
+  "htmlcov*"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "pytest-cov",
+  "black",
+  "flake8",
+  "flake8-bugbear",
+    "pathlib"
+]
+doc = [
+  "mkdocs",
+  "mkdocs-material",
+  "mkdocstrings",
+  "mkdocstrings-python"
+]
+
+[project.urls]
+Documentation = "https://dcs4cop.github.io/xcube-cmems/"
+Issues = "hhttps://github.com/dcs4cop/xcube-cmems/issues"
+Changelog = "https://github.com/dcs4cop/xcube-cmems/blob/main/CHANGES.md"
+Repository = "https://github.com/dcs4cop/xcube-cmems"

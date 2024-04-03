@@ -4,19 +4,20 @@ channels:
   - defaults
 dependencies:
   # Required
-  - aiohttp >=3.8
-  # pinning the gdal version to overwrite xcube versioning, remove after next xcube
-  # release
-  - gdal >=3.0,<3.6.3
-  - lxml >=4.9.1
-  - nest-asyncio >=1.5
-  - owslib
-  - pydap >=3.3.0
-  - pyproj
-  - tenacity
+  - copernicusmarine
+  - numpy
+  - pandas
+  - xarray
   - xcube >=0.12.1
   - zarr
   # for testing
+  - black
+  - flake8
   - mock
+  - pathlib
   - pytest
+
+
+
+
 
