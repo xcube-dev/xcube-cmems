@@ -1,7 +1,8 @@
 ## Changes in 0.1.4
 
 - Changed initialization of cmems to not call copernicusmarine.login that writes a 
-  configuration_file. (#32)
+  configuration file. (#32)
+
 
 ## Changes in 0.1.3
 
