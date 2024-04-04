@@ -20,7 +20,6 @@
 # SOFTWARE.
 
 import os
-import pathlib
 from typing import List, Optional
 
 import copernicusmarine as cm
@@ -33,7 +32,6 @@ class Cmems:
         self,
         cmems_username: Optional[str] = None,
         cmems_password: Optional[str] = None,
-        configuration_file_directory=pathlib.Path.cwd(),
     ):
         self.cmems_username = (
             cmems_username
@@ -55,12 +53,6 @@ class Cmems:
                 "provided as store params cmems_username and "
                 "cmems_password"
             )
-        cm.login(
-            username=self.cmems_username,
-            password=self.cmems_password,
-            configuration_file_directory=configuration_file_directory,
-            overwrite_configuration_file=True
-        )
 
     @classmethod
     def get_datasets_with_titles(cls) -> List[dict]:

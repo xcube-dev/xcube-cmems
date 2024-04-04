@@ -28,18 +28,13 @@ from unittest.mock import patch, MagicMock
 
 class CmemsTest(unittest.TestCase):
 
-    # the mocks the click.confirm function, process to confirm actions like
-    # overwriting files.
-    @patch("click.confirm", return_value=True)
-    def setUp(self, mock_confirm):
+    def setUp(self):
         # Setup environment variables for testing
-        os.environ["CMEMS_USERNAME"] = "testuser"
-        os.environ["CMEMS_PASSWORD"] = "testpass"
-        self.configuration_file_directory = pathlib.Path.cwd()
+        os.environ["COPERNICUS_MARINE_SERVICE_USERNAME"] = "testuser"
+        os.environ["COPERNICUS_MARINE_SERVICE_PASSWORD"] = "testpass"
 
-    @patch("click.confirm", return_value=True)
     @patch("xcube_cmems.cmems.cm.describe")
-    def test_get_datasets_with_titles(self, mock_describe, mock_confirm):
+    def test_get_datasets_with_titles(self, mock_describe):
         # Mock the response from cm.describe
         mock_describe.return_value = {
             "products": [
@@ -65,16 +60,12 @@ class CmemsTest(unittest.TestCase):
 
         self.assertEqual(datasets_info, expected_result)
 
-    @patch("click.confirm", return_value=True)
     @patch("xcube_cmems.cmems.cm.open_dataset")
-    def test_open_dataset(self, mock_open_dataset, mock_confirm):
+    def test_open_dataset(self, mock_open_dataset):
         # Mock the response from cm.open_dataset
         mock_dataset = MagicMock()
         mock_open_dataset.return_value = mock_dataset
-        cmems_instance = Cmems(
-            configuration_file_directory=self.configuration_file_directory
-        )
-
+        cmems_instance = Cmems()
         result = cmems_instance.open_dataset("dataset1")
         self.assertEqual(result, mock_dataset)
 

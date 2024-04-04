@@ -18,7 +18,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import os
 import unittest
 
 import xarray as xr
@@ -35,11 +34,9 @@ from .sample_data import create_cmems_dataset
 
 class CmemsDataOpenerTest(unittest.TestCase):
 
-    @patch("click.confirm", return_value=True)
-    def setUp(self, mock_confirm) -> None:
-        with patch("click.confirm", return_value=True):
-            self.dataset_id = "cmems_mod_arc_bgc_anfc_ecosmo_P1D-m"
-            self.opener = CmemsDatasetOpener()
+    def setUp(self) -> None:
+        self.dataset_id = "cmems_mod_arc_bgc_anfc_ecosmo_P1D-m"
+        self.opener = CmemsDatasetOpener()
 
     @patch("xcube_cmems.cmems.Cmems.open_dataset")
     def test_subset_cube_with_open_params(self, mock_open_dataset):
@@ -104,8 +101,7 @@ class CmemsDataOpenerTest(unittest.TestCase):
 
 class CmemsDataStoreTest(unittest.TestCase):
 
-    @patch("click.confirm", return_value=True)
-    def setUp(self, mock_confirm) -> None:
+    def setUp(self) -> None:
         self.dataset_id = "cmems_mod_arc_bgc_anfc_ecosmo_P1D-m"
         self.mock_datasets = [
             {"dataset_id": "id1", "title": "Title 1"},
