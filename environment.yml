@@ -9,7 +9,6 @@ dependencies:
   - pandas
   - xarray
   - xcube >=0.12.1
-  - zarr
   # for testing
   - black
   - flake8
