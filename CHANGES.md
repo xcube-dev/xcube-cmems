@@ -1,3 +1,7 @@
+## Changes in 0.1.5
+
+- Disabled metadata cache to make it more suitable for cloud based environments. (#36)
+
 ## Changes in 0.1.4
 
 - Changed initialization of cmems to not call copernicusmarine.login that writes a 
