@@ -1,3 +1,8 @@
+## Changes in 0.5.2 (in development)
+
+- Update of `pyproject.toml'file; package name changed and entry point removed, since xcube
+  plugins auto-recognition is updated. (#39 and xcube-dev/xcube#963)
+
 ## Changes in 0.1.5
 
 - Disabled metadata cache to make it more suitable for cloud based environments. (#36)
