@@ -1,7 +1,8 @@
 ## Changes in 0.5.2 (in development)
 
-- Update of `pyproject.toml'file; package name changed and entry point removed, since xcube
-  plugins auto-recognition is updated. (#39 and xcube-dev/xcube#963)
+- Updated `pyproject.toml` file; package name changed from `xcube-cmems`
+  to `xcube_cmems` and entry point removed, since xcube plugins 
+  auto-recognition is updated. (#39 and xcube-dev/xcube#963)
 
 ## Changes in 0.1.5
 
