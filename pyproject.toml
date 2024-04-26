@@ -25,7 +25,6 @@ dependencies = [
     "numpy",
     "pandas",
     "xarray",
-    "xcube>=1.5.1",
     "zarr"
 ]
 
