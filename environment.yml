@@ -8,7 +8,7 @@ dependencies:
   - numpy
   - pandas
   - xarray
-  - xcube >=0.12.1
+  - xcube>=1.5.1
   # for testing
   - black
   - flake8
