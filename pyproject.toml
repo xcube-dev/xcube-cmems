@@ -5,7 +5,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "xcube-cmems"
+name = "xcube_cmems"
 dynamic = ["version"]
 authors = [
   {name = "Tejas Morbagal Harish", email = "tejas.morbagalharish@brockmann-consult.de"}
@@ -30,9 +30,6 @@ dependencies = [
 
 [tool.setuptools.dynamic]
 version = {attr = "xcube_cmems.__version__"}
-
-[project.entry-points.xcube_plugins]
-xcube_cmems = "xcube_cmems.plugin:init_plugin"
 
 [tool.setuptools.packages.find]
 exclude = [
