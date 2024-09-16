@@ -1,7 +1,6 @@
 name: xcube-cmems
 channels:
   - conda-forge
-  - defaults
 dependencies:
   # Required
   - copernicusmarine >=1.0.10
