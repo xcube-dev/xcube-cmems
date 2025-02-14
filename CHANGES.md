@@ -3,6 +3,7 @@
 - Updated `pyproject.toml` file; package name changed from `xcube-cmems`
   to `xcube_cmems` and entry point removed, since xcube plugins 
   auto-recognition is updated. (#39 and xcube-dev/xcube#963)
+- Support use of copernicusmarine with version 2.0 and higher
 
 ## Changes in 0.1.5
 
