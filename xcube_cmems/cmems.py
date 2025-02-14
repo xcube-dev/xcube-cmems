@@ -72,7 +72,6 @@ class Cmems:
                 dataset_id=dataset_id,
                 username=self.cmems_username,
                 password=self.cmems_password,
-                no_metadata_cache=True,
                 **open_params,
             )
             return ds
