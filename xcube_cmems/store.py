@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Any, List, Tuple, Container, Union, Iterator, Dict
+from typing import Any, List, Tuple, Container, Iterator, Dict, Optional
 
 import logging
 import xarray as xr
@@ -87,19 +87,18 @@ class CmemsDataOpener(DataOpener):
         return var_descriptors
 
     @staticmethod
-    def _determine_time_period(data: xr.Dataset):
+    def _determine_time_period(data: xr.Dataset) -> Optional[str]:
         if "time" in data and len(data["time"].values) > 1:
-            time_diff = (
-                data["time"].diff(dim=data["time"].dims[0]).values.astype(np.float64)
-            )
+            time_diff = data["time"].diff(dim=data["time"].dims[0]).values
             time_res = time_diff[0]
-            time_regular = np.allclose(time_res, time_diff, 1e-8)
+            time_regular = np.allclose(time_diff, time_res, rtol=1e-8, atol=0)
             if time_regular:
                 time_period = pd.to_timedelta(time_res).isoformat()
                 # remove leading P
                 time_period = time_period[1:]
                 # removing sub-day precision
                 return time_period.split("T")[0]
+        return None
 
     def describe_data(self, data_id: str) -> DatasetDescriptor:
         xr_ds = self.cmems.open_dataset(data_id)
@@ -228,11 +227,23 @@ class CmemsDataStore(DataStore):
         return self._dataset_opener
 
     def get_data_ids(
-        self, data_type: DataTypeLike = None, include_attrs: Container[str] = None
-    ) -> Union[Iterator[str], Iterator[Tuple[str, Dict[str, Any]]]]:
+        self,
+        data_type: DataTypeLike = None,
+        include_attrs: Container[str] | bool = False,
+    ) -> Iterator[str] | Iterator[Tuple[str, Dict[str, Any]]]:
+
         dataset_ids_with_titles = self._dataset_opener.cmems.get_datasets_with_titles()
-        return_tuples = include_attrs is not None
-        include_titles = return_tuples and "title" in include_attrs
+
+        if isinstance(include_attrs, bool):
+            return_tuples = include_attrs
+            include_titles = include_attrs
+        elif isinstance(include_attrs, Container):
+            return_tuples = True
+            include_titles = "title" in include_attrs
+        else:
+            raise ValueError(
+                f"Invalid type {type(include_attrs)} for include_attrs"
+            )
 
         for dataset in dataset_ids_with_titles:
             data_id = dataset["dataset_id"]
