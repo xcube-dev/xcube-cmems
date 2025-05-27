@@ -21,10 +21,10 @@ license = {text = "MIT"}
 requires-python = ">=3.10"
 dependencies = [
     # Todo: add xcube-core when issue with matplotlib-base is solved
-    "copernicusmarine",
-    "numpy",
+    "copernicusmarine>=2.1.1",
+    "numpy<2.0.0",
+    "xarray>=2024.7.0",
     "pandas",
-    "xarray",
     "zarr"
 ]
 
@@ -41,22 +41,16 @@ exclude = [
 
 [project.optional-dependencies]
 dev = [
-  "pytest",
-  "pytest-cov",
-  "black",
-  "flake8",
-  "flake8-bugbear",
-    "pathlib"
-]
-doc = [
-  "mkdocs",
-  "mkdocs-material",
-  "mkdocstrings",
-  "mkdocstrings-python"
+      "pytest",
+      "pytest-cov",
+      "black",
+      "flake8",
+      "flake8-bugbear",
+      "pathlib"
 ]
 
 [project.urls]
 Documentation = "https://dcs4cop.github.io/xcube-cmems/"
-Issues = "hhttps://github.com/dcs4cop/xcube-cmems/issues"
+Issues = "https://github.com/dcs4cop/xcube-cmems/issues"
 Changelog = "https://github.com/dcs4cop/xcube-cmems/blob/main/CHANGES.md"
 Repository = "https://github.com/dcs4cop/xcube-cmems"
