@@ -22,9 +22,9 @@
 import os
 import unittest
 from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 from xcube_cmems.cmems import Cmems
-from unittest.mock import patch, MagicMock
 
 
 class CmemsTest(unittest.TestCase):

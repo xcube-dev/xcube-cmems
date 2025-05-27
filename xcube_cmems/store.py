@@ -19,24 +19,23 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Any, List, Tuple, Container, Iterator, Dict, Optional
-
 import logging
-import xarray as xr
+from typing import Any, Container, Dict, Iterator, List, Optional, Tuple
+
 import numpy as np
 import pandas as pd
-
+import xarray as xr
 from xarray.core.dataset import DataVariables
 from xcube.core.gridmapping import GridMapping
 from xcube.core.store import (
     DATASET_TYPE,
     DataDescriptor,
     DataOpener,
+    DatasetDescriptor,
     DataStore,
     DataStoreError,
     DataType,
     DataTypeLike,
-    DatasetDescriptor,
     VariableDescriptor,
 )
 from xcube.util.assertions import assert_not_none
@@ -241,9 +240,7 @@ class CmemsDataStore(DataStore):
             return_tuples = True
             include_titles = "title" in include_attrs
         else:
-            raise ValueError(
-                f"Invalid type {type(include_attrs)} for include_attrs"
-            )
+            raise ValueError(f"Invalid type {type(include_attrs)} for include_attrs")
 
         for dataset in dataset_ids_with_titles:
             data_id = dataset["dataset_id"]

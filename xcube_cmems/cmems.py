@@ -61,10 +61,12 @@ class Cmems:
         for product in catalogue.products:
             product_title = product.title
             for dataset in product.datasets:
-                datasets_info.append({
-                    "dataset_id": dataset.dataset_id,
-                    "title": f"{product_title} - {dataset.dataset_name}"
-                })
+                datasets_info.append(
+                    {
+                        "dataset_id": dataset.dataset_id,
+                        "title": f"{product_title} - {dataset.dataset_name}",
+                    }
+                )
         return datasets_info
 
     def open_dataset(self, dataset_id, **open_params) -> xr.Dataset:
