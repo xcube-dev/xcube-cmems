@@ -56,13 +56,15 @@ class Cmems:
 
     @classmethod
     def get_datasets_with_titles(cls) -> List[dict]:
-        catalogue: dict = cm.describe(include_datasets=True, no_metadata_cache=True)
+        catalogue: dict = cm.describe()
         datasets_info: List[dict] = []
-        for product in catalogue["products"]:
-            product_title = product["title"]
-            for dataset in product["datasets"]:
-                dataset_id: str = dataset["dataset_id"]
-                datasets_info.append({"title": product_title, "dataset_id": dataset_id})
+        for product in catalogue.products:
+            product_title = product.title
+            for dataset in product.datasets:
+                datasets_info.append({
+                    "dataset_id": dataset.dataset_id,
+                    "title": f"{product_title} - {dataset.dataset_name}"
+                })
         return datasets_info
 
     def open_dataset(self, dataset_id, **open_params) -> xr.Dataset:
@@ -72,7 +74,6 @@ class Cmems:
                 dataset_id=dataset_id,
                 username=self.cmems_username,
                 password=self.cmems_password,
-                no_metadata_cache=True,
                 **open_params,
             )
             return ds
