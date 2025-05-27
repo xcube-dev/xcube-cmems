@@ -18,9 +18,10 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import pathlib
+
 import os
 import unittest
+from types import SimpleNamespace
 
 from xcube_cmems.cmems import Cmems
 from unittest.mock import patch, MagicMock
@@ -35,18 +36,17 @@ class CmemsTest(unittest.TestCase):
 
     @patch("xcube_cmems.cmems.cm.describe")
     def test_get_datasets_with_titles(self, mock_describe):
-        # Create mock datasets
-        mock_dataset1 = MagicMock(dataset_id="dataset1", title="Dataset 1")
-        mock_dataset2 = MagicMock(dataset_id="dataset2", title="Dataset 2")
-        mock_dataset3 = MagicMock(dataset_id="dataset3", title="Dataset 3")
+        # Fake datasets
+        dataset1 = SimpleNamespace(dataset_id="dataset1", dataset_name="Dataset 1")
+        dataset2 = SimpleNamespace(dataset_id="dataset2", dataset_name="Dataset 2")
+        dataset3 = SimpleNamespace(dataset_id="dataset3", dataset_name="Dataset 3")
 
-        # Create mock products
-        mock_product_a = MagicMock(title="Product A", datasets=[mock_dataset1, mock_dataset2])
-        mock_product_b = MagicMock(title="Product B", datasets=[mock_dataset3])
+        # Fake products
+        product_a = SimpleNamespace(title="Product A", datasets=[dataset1, dataset2])
+        product_b = SimpleNamespace(title="Product B", datasets=[dataset3])
 
-        # Mock the return value of cm.describe()
-        mock_catalogue = MagicMock()
-        mock_catalogue.products = [mock_product_a, mock_product_b]
+        # Fake catalogue
+        mock_catalogue = SimpleNamespace(products=[product_a, product_b])
         mock_describe.return_value = mock_catalogue
 
         cmems = Cmems()
