@@ -13,7 +13,7 @@
 
 - Updated dependency versions to ensure compatibility with `copernicusmarine` >= 2.1.1.
 
-- Updated GitHub Actions workflow to use the latest Micromamba setup and Python 3.12.
+- Updated GitHub Actions workflow to use the latest Micromamba setup and use codecov.
 
 ## Changes in 0.1.5
 
