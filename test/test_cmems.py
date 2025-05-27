@@ -35,30 +35,29 @@ class CmemsTest(unittest.TestCase):
 
     @patch("xcube_cmems.cmems.cm.describe")
     def test_get_datasets_with_titles(self, mock_describe):
-        # Mock the response from cm.describe
-        mock_describe.return_value = {
-            "products": [
-                {
-                    "title": "Product A",
-                    "datasets": [
-                        {"dataset_id": "dataset1"},
-                        {"dataset_id": "dataset2"},
-                    ],
-                },
-                {"title": "Product B", "datasets": [{"dataset_id": "dataset3"}]},
-            ]
-        }
+        # Create mock datasets
+        mock_dataset1 = MagicMock(dataset_id="dataset1", title="Dataset 1")
+        mock_dataset2 = MagicMock(dataset_id="dataset2", title="Dataset 2")
+        mock_dataset3 = MagicMock(dataset_id="dataset3", title="Dataset 3")
+
+        # Create mock products
+        mock_product_a = MagicMock(title="Product A", datasets=[mock_dataset1, mock_dataset2])
+        mock_product_b = MagicMock(title="Product B", datasets=[mock_dataset3])
+
+        # Mock the return value of cm.describe()
+        mock_catalogue = MagicMock()
+        mock_catalogue.products = [mock_product_a, mock_product_b]
+        mock_describe.return_value = mock_catalogue
+
         cmems = Cmems()
         datasets_info = cmems.get_datasets_with_titles()
 
-        # Expected result based on the mocked describe response
-        expected_result = [
-            {"title": "Product A", "dataset_id": "dataset1"},
-            {"title": "Product A", "dataset_id": "dataset2"},
-            {"title": "Product B", "dataset_id": "dataset3"},
+        expected = [
+            {"dataset_id": "dataset1", "title": "Product A - Dataset 1"},
+            {"dataset_id": "dataset2", "title": "Product A - Dataset 2"},
+            {"dataset_id": "dataset3", "title": "Product B - Dataset 3"},
         ]
-
-        self.assertEqual(datasets_info, expected_result)
+        self.assertEqual(datasets_info, expected)
 
     @patch("xcube_cmems.cmems.cm.open_dataset")
     def test_open_dataset(self, mock_open_dataset):
