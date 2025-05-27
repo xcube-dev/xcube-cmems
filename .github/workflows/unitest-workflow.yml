@@ -40,4 +40,9 @@ jobs:
           shell: bash -l {0}
           run: |
               pytest --cov=xcube_cmems --cov-report=xml
-          
+
+      -  uses: codecov/codecov-action@v4
+         with:
+             verbose: true # optional (default = false)
+
+
