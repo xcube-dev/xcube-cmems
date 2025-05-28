@@ -56,7 +56,7 @@ class Cmems:
 
     @classmethod
     def get_datasets_with_titles(cls) -> List[dict]:
-        catalogue: dict = cm.describe()
+        catalogue: CopernicusMarineCatalogue = cm.describe()
         datasets_info: List[dict] = []
         for product in catalogue.products:
             product_title = product.title
