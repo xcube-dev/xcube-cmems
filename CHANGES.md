@@ -4,6 +4,17 @@
   to `xcube_cmems` and entry point removed, since xcube plugins 
   auto-recognition is updated. (#39 and xcube-dev/xcube#963)
 
+- Support boolean-valued include_attrs in get_data_ids in accordance with API update in 
+  xcube 1.8.0.
+
+- Refactored `get_datasets_with_titles()` to align with the updated return type of 
+ `cm.describe()`. (now returning a `CopernicusMarineCatalogue` object). The function 
+  now accesses products and datasets via object attributes instead of dictionary keys.
+
+- Updated dependency versions to ensure compatibility with `copernicusmarine` >= 2.1.1.
+
+- Updated GitHub Actions workflow to use the latest Micromamba setup and use codecov.
+
 ## Changes in 0.1.5
 
 - Disabled metadata cache to make it more suitable for cloud based environments. (#36)

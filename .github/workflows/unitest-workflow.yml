@@ -15,19 +15,34 @@ jobs:
       NUMBA_DISABLE_JIT: 1
     steps:
       - name: checkout xcube-cmems
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up MicroMamba
-        uses: mamba-org/provision-with-micromamba@main
+      - name: Set up Micromamba
+        uses: mamba-org/setup-micromamba@v2
         with:
-          cache-env: true
-          extra-specs: |
-            python=3.10
+            micromamba-version: '1.4.8-0'
+            environment-file: environment.yml
+            init-shell: >-
+                bash
+            # Don't cache the environment, since this would prevent us from
+            # catching test failures caused by updated versions of dependencies.
+            cache-environment: false
+            post-cleanup: 'all'
 
-      - name: Run unit tests
-        shell: bash -l {0}
-        run: |
-          cd /home/runner/work/xcube-cmems/xcube-cmems
-          ls
-          pytest 
-          
+      -   name: setup-xcube-cmems
+          shell: bash -l {0}
+          run: |
+              conda info
+              conda list
+              pip install -e .
+
+      -   name: unittest-xcube
+          shell: bash -l {0}
+          run: |
+              pytest --cov=xcube_cmems --cov-report=xml
+
+      -  uses: codecov/codecov-action@v4
+         with:
+             verbose: true # optional (default = false)
+
+

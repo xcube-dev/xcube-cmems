@@ -19,16 +19,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import unittest
+from datetime import datetime, timedelta
+from unittest.mock import MagicMock, patch
 
 import xarray as xr
-from datetime import datetime, timedelta
-from unittest.mock import patch, MagicMock
-
 import xcube.core.store.descriptor as xcube_des
 from xcube.util.jsonschema import JsonObjectSchema
+
 from xcube_cmems.constants import DATASET_OPENER_ID
-from xcube_cmems.store import CmemsDatasetOpener
-from xcube_cmems.store import CmemsDataStore
+from xcube_cmems.store import CmemsDatasetOpener, CmemsDataStore
+
 from .sample_data import create_cmems_dataset
 
 

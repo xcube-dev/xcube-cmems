@@ -2,19 +2,20 @@ name: xcube-cmems
 channels:
   - conda-forge
 dependencies:
+  # Python
+  - python >=3.10
   # Required
-  - copernicusmarine >=1.0.10
-  - numpy
+  - copernicusmarine >=2.1.1
+  - xcube >=1.9.1
+  - numpy <2.0.0 # to avoid inconsistent results with copernicusmarine package
+  - xarray >=2024.7.0 # to avoid inconsistent results with copernicusmarine package
   - pandas
-  - xarray
-  - xcube>=1.5.1
   # for testing
   - black
   - flake8
   - mock
-  - pathlib
   - pytest
-
+  - pytest-cov
 
 
 

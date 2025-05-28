@@ -18,12 +18,13 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import pathlib
+
 import os
 import unittest
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 from xcube_cmems.cmems import Cmems
-from unittest.mock import patch, MagicMock
 
 
 class CmemsTest(unittest.TestCase):
@@ -35,30 +36,28 @@ class CmemsTest(unittest.TestCase):
 
     @patch("xcube_cmems.cmems.cm.describe")
     def test_get_datasets_with_titles(self, mock_describe):
-        # Mock the response from cm.describe
-        mock_describe.return_value = {
-            "products": [
-                {
-                    "title": "Product A",
-                    "datasets": [
-                        {"dataset_id": "dataset1"},
-                        {"dataset_id": "dataset2"},
-                    ],
-                },
-                {"title": "Product B", "datasets": [{"dataset_id": "dataset3"}]},
-            ]
-        }
+        # Fake datasets
+        dataset1 = SimpleNamespace(dataset_id="dataset1", dataset_name="Dataset 1")
+        dataset2 = SimpleNamespace(dataset_id="dataset2", dataset_name="Dataset 2")
+        dataset3 = SimpleNamespace(dataset_id="dataset3", dataset_name="Dataset 3")
+
+        # Fake products
+        product_a = SimpleNamespace(title="Product A", datasets=[dataset1, dataset2])
+        product_b = SimpleNamespace(title="Product B", datasets=[dataset3])
+
+        # Fake catalogue
+        mock_catalogue = SimpleNamespace(products=[product_a, product_b])
+        mock_describe.return_value = mock_catalogue
+
         cmems = Cmems()
         datasets_info = cmems.get_datasets_with_titles()
 
-        # Expected result based on the mocked describe response
-        expected_result = [
-            {"title": "Product A", "dataset_id": "dataset1"},
-            {"title": "Product A", "dataset_id": "dataset2"},
-            {"title": "Product B", "dataset_id": "dataset3"},
+        expected = [
+            {"dataset_id": "dataset1", "title": "Product A - Dataset 1"},
+            {"dataset_id": "dataset2", "title": "Product A - Dataset 2"},
+            {"dataset_id": "dataset3", "title": "Product B - Dataset 3"},
         ]
-
-        self.assertEqual(datasets_info, expected_result)
+        self.assertEqual(datasets_info, expected)
 
     @patch("xcube_cmems.cmems.cm.open_dataset")
     def test_open_dataset(self, mock_open_dataset):

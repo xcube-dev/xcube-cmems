@@ -19,11 +19,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from xcube.constants import EXTENSION_POINT_DATA_OPENERS, EXTENSION_POINT_DATA_STORES
 from xcube.util import extension
-from xcube.constants import EXTENSION_POINT_DATA_OPENERS
-from xcube.constants import EXTENSION_POINT_DATA_STORES
-from xcube_cmems.constants import DATASET_OPENER_ID
-from xcube_cmems.constants import DATA_STORE_ID
+
+from xcube_cmems.constants import DATA_STORE_ID, DATASET_OPENER_ID
 
 
 def init_plugin(ext_registry: extension.ExtensionRegistry):
