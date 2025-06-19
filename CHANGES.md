@@ -1,4 +1,4 @@
-## Changes in 0.1.6 (in development)
+## Changes in 0.1.6
 
 - Updated `pyproject.toml` file; package name changed from `xcube-cmems`
   to `xcube_cmems` and entry point removed, since xcube plugins 
