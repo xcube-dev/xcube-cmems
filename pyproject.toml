@@ -23,7 +23,6 @@ dependencies = [
     # Todo: add xcube-core when issue with matplotlib-base is solved
     "copernicusmarine>=2.1.1",
     "numpy>=2.0.0",
-    "xarray<2024.7.0",
     "pandas",
     "zarr"
 ]
