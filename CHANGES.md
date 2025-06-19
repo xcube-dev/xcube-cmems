@@ -1,3 +1,8 @@
+## Changes in 0.1.7
+
+
+- Ensuring compatibility with latest `copernicusmarine` requirements
+
 ## Changes in 0.1.6
 
 - Updated `pyproject.toml` file; package name changed from `xcube-cmems`
