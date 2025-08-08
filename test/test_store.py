@@ -33,7 +33,6 @@ from .sample_data import create_cmems_dataset
 
 
 class CmemsDataOpenerTest(unittest.TestCase):
-
     def setUp(self) -> None:
         self.dataset_id = "cmems_mod_arc_bgc_anfc_ecosmo_P1D-m"
         self.opener = CmemsDatasetOpener()
@@ -100,7 +99,6 @@ class CmemsDataOpenerTest(unittest.TestCase):
 
 
 class CmemsDataStoreTest(unittest.TestCase):
-
     def setUp(self) -> None:
         self.dataset_id = "cmems_mod_arc_bgc_anfc_ecosmo_P1D-m"
         self.mock_datasets = [
@@ -191,7 +189,6 @@ class CmemsDataStoreTest(unittest.TestCase):
 
 
 class CmemsDataStoreParamsTest(unittest.TestCase):
-
     def test_store_for_cmems_credentials(self):
         params = {"cmems_username": "", "cmems_password": ""}
         with self.assertRaises(Exception) as e:
