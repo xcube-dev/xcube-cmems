@@ -39,20 +39,19 @@ class CmemsTest(unittest.TestCase):
 
     @patch("xcube_cmems.cmems.cm.describe")
     def test_get_datasets_with_titles(self, mock_describe):
-        # Fake datasets
+        # Mock datasets
         dataset1 = SimpleNamespace(dataset_id="dataset1", dataset_name="Dataset 1")
         dataset2 = SimpleNamespace(dataset_id="dataset2", dataset_name="Dataset 2")
         dataset3 = SimpleNamespace(dataset_id="dataset3", dataset_name="Dataset 3")
 
-        # Fake products
+        # Mock products
         product_a = SimpleNamespace(title="Product A", datasets=[dataset1, dataset2])
         product_b = SimpleNamespace(title="Product B", datasets=[dataset3])
 
-        # Fake catalogue
+        # Mock catalogue
         mock_catalogue = SimpleNamespace(products=[product_a, product_b])
         mock_describe.return_value = mock_catalogue
 
-        # cmems = Cmems()
         datasets_info = self.cmems.get_datasets_with_titles()
 
         expected = [
