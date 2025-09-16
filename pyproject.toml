@@ -22,6 +22,7 @@ requires-python = ">=3.10"
 dependencies = [
     # Todo: add xcube-core when issue with matplotlib-base is solved
     "copernicusmarine>=2.1.1",
+    "numpy",
     "pandas",
     "zarr"
 ]
