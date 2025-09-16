@@ -1,7 +1,7 @@
 ## Changes in 0.1.8
 
-- Made dataset attributes JSON-serializable in cmems open_dataset() to avoid xcube
-  serve errors. (#48)
+- Made metadata attributes of datasets returned by the data store JSON-serializable to 
+  avoid problems in xcube Server. (#48)
 
 - Disabled progress bar in list_data_ids() to avoid stdout bloats in JNB (#47)
 
