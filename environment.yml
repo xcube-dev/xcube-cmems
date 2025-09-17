@@ -6,8 +6,8 @@ dependencies:
   - python >=3.10
   # Required
   - copernicusmarine >=2.1.1
-  - xcube >=1.9.1
-  - numpy >=2.0.0 # to avoid inconsistent results with copernicusmarine package
+  - xcube >=1.11.1
+  - numpy
   - pandas
   # for testing
   - black

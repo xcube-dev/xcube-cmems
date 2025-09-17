@@ -176,13 +176,8 @@ class CmemsDataOpener(DataOpener):
 
 
 class CmemsDatasetOpener(CmemsDataOpener):
-
     def __init__(self, **cmems_params):
-        super().__init__(
-            Cmems(**cmems_params),
-            DATASET_OPENER_ID,
-            DATASET_TYPE,
-        )
+        super().__init__(Cmems(**cmems_params), DATASET_OPENER_ID, DATASET_TYPE)
 
 
 class CmemsDataStore(DataStore):

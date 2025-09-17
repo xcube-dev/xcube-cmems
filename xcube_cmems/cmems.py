@@ -23,40 +23,39 @@ import os
 from typing import List, Optional
 
 import copernicusmarine as cm
+import numpy as np
 import xarray as xr
+from copernicusmarine import CopernicusMarineCatalogue
 
 
 class Cmems:
-
     def __init__(
-        self,
-        cmems_username: Optional[str] = None,
-        cmems_password: Optional[str] = None,
+        self, cmems_username: Optional[str] = None, cmems_password: Optional[str] = None
     ):
         self.cmems_username = (
             cmems_username
             if cmems_username is not None
-            else os.getenv("CMEMS_USERNAME")
+            else os.getenv("COPERNICUSMARINE_SERVICE_USERNAME")
         )
         self.cmems_password = (
             cmems_password
             if cmems_password is not None
-            else os.getenv("CMEMS_PASSWORD")
+            else os.getenv("COPERNICUSMARINE_SERVICE_PASSWORD")
         )
 
         if not self.cmems_username or not self.cmems_password:
             raise ValueError(
                 "CmemsDataStore needs cmems credentials to "
                 "be provided either as "
-                "environment variables CMEMS_USERNAME and "
-                "CMEMS_PASSWORD, or to be "
+                "environment variables COPERNICUSMARINE_SERVICE_USERNAME and "
+                "COPERNICUSMARINE_SERVICE_PASSWORD, or to be "
                 "provided as store params cmems_username and "
                 "cmems_password"
             )
 
     @classmethod
     def get_datasets_with_titles(cls) -> List[dict]:
-        catalogue: CopernicusMarineCatalogue = cm.describe()
+        catalogue: CopernicusMarineCatalogue = cm.describe(disable_progress_bar=True)
         datasets_info: List[dict] = []
         for product in catalogue.products:
             product_title = product.title
@@ -69,6 +68,31 @@ class Cmems:
                 )
         return datasets_info
 
+    def to_json_serializable(self, obj):
+        """Convert NumPy types and nested structures to JSON-serializable types."""
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.bool_):
+            return bool(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, dict):
+            return {str(k): self.to_json_serializable(v) for k, v in obj.items()}
+        elif isinstance(obj, (list, tuple)):
+            return [self.to_json_serializable(i) for i in obj]
+        return obj
+
+    def sanitize_attrs(self, ds: xr.Dataset) -> xr.Dataset:
+        """Sanitize dataset and variable attributes for JSON serialization."""
+        for var in ds.data_vars:
+            ds[var].attrs = {
+                str(k): self.to_json_serializable(v) for k, v in ds[var].attrs.items()
+            }
+        ds.attrs = {str(k): self.to_json_serializable(v) for k, v in ds.attrs.items()}
+        return ds
+
     def open_dataset(self, dataset_id, **open_params) -> xr.Dataset:
         try:
 
@@ -78,6 +102,7 @@ class Cmems:
                 password=self.cmems_password,
                 **open_params,
             )
+            ds = self.sanitize_attrs(ds)
             return ds
         except KeyError as e:
             print(f"Error: {e}.")
